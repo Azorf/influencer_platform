@@ -2,7 +2,9 @@ from django.db import models
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from django.core.validators import MinValueValidator, MaxValueValidator
-
+from django.utils import timezone
+from datetime import timedelta
+import uuid
 
 class Agency(models.Model):
     """Agency model for marketing agencies"""
@@ -155,3 +157,64 @@ class AgencySubscription(models.Model):
             self.trial_end_date and 
             self.trial_end_date > timezone.now()
         )
+
+
+class TeamInvitation(models.Model):
+    """Secure team invitation system for agency employees"""
+    
+    STATUS_CHOICES = (
+        ('pending', _('Pending')),
+        ('accepted', _('Accepted')),
+        ('expired', _('Expired')),
+        ('cancelled', _('Cancelled')),
+    )
+    
+    # Invitation details
+    agency = models.ForeignKey('agencies.Agency', on_delete=models.CASCADE, related_name='invitations')
+    email = models.EmailField()
+    role = models.CharField(max_length=50, choices=[
+        ('manager', _('Manager')),
+        ('account_manager', _('Account Manager')),
+        ('strategist', _('Strategist')),
+        ('creative', _('Creative')),
+        ('analyst', _('Analyst')),
+    ])
+    
+    # Security
+    token = models.UUIDField(default=uuid.uuid4, unique=True)
+    invited_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='sent_invitations')
+    
+    # Status tracking
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    message = models.TextField(blank=True, null=True, help_text=_('Optional message to the invitee'))
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    accepted_at = models.DateTimeField(blank=True, null=True)
+    accepted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.SET_NULL, 
+        blank=True, null=True,
+        related_name='accepted_invitations'
+    )
+    
+    class Meta:
+        db_table = 'agencies_teaminvitation'
+        verbose_name = _('Team Invitation')
+        verbose_name_plural = _('Team Invitations')
+        unique_together = ['agency', 'email']  # Prevent duplicate invites
+    
+    def __str__(self):
+        return f"{self.agency.name} → {self.email} ({self.role})"
+    
+    def save(self, *args, **kwargs):
+        if not self.expires_at:
+            self.expires_at = timezone.now() + timedelta(days=7)  # 7 days to accept
+        super().save(*args, **kwargs)
+    
+    def is_expired(self):
+        return timezone.now() > self.expires_at and self.status == 'pending'
+    
+    def is_valid(self):
+        return self.status == 'pending' and not self.is_expired()

@@ -7804,3 +7804,21 @@ INFO 2025-12-01 22:57:48,840 autoreload 28674 140506191698816 Watching for file 
 INFO 2025-12-01 22:58:04,090 basehttp 28674 140506059241152 "GET / HTTP/1.1" 200 291
 INFO 2025-12-02 09:38:44,858 autoreload 40 140227047472000 Watching for file changes with StatReloader
 INFO 2025-12-02 09:38:49,137 basehttp 40 140226847569600 "GET / HTTP/1.1" 200 291
+INFO 2025-12-02 19:26:03,645 autoreload 7346 139950253869952 Watching for file changes with StatReloader
+INFO 2025-12-02 19:26:54,062 autoreload 7346 139950253869952 /app/accounts/models.py changed, reloading.
+INFO 2025-12-02 19:26:56,468 autoreload 7360 140249971669888 Watching for file changes with StatReloader
+INFO 2025-12-02 19:29:00,518 autoreload 7360 140249971669888 /app/accounts/models.py changed, reloading.
+INFO 2025-12-02 19:29:02,175 autoreload 7386 140529336097664 Watching for file changes with StatReloader
+INFO 2025-12-02 19:29:08,787 autoreload 7386 140529336097664 /app/accounts/signals.py changed, reloading.
+INFO 2025-12-02 19:29:10,623 autoreload 7388 140108092976000 Watching for file changes with StatReloader
+INFO 2025-12-02 19:29:24,001 autoreload 7388 140108092976000 /app/accounts/signals.py changed, reloading.
+INFO 2025-12-02 19:29:25,854 autoreload 7390 139984238128000 Watching for file changes with StatReloader
+INFO 2025-12-02 19:30:25,440 autoreload 7390 139984238128000 /app/agencies/models.py changed, reloading.
+INFO 2025-12-02 19:30:27,751 autoreload 7410 140423704103808 Watching for file changes with StatReloader
+INFO 2025-12-02 19:34:01,131 autoreload 7410 140423704103808 /app/agencies/apps.py changed, reloading.
+INFO 2025-12-02 19:34:02,573 autoreload 7454 139853031373696 Watching for file changes with StatReloader
+INFO 2025-12-02 21:51:46,877 autoreload 7454 139853031373696 /app/influencer_platform/settings.py changed, reloading.
+INFO 2025-12-02 22:07:39,168 autoreload 40 140027132029824 Watching for file changes with StatReloader
+INFO 2025-12-02 22:07:40,570 basehttp 40 140026931312320 "GET / HTTP/1.1" 200 291
+INFO 2025-12-02 22:20:58,756 autoreload 46 140126853057408 Watching for file changes with StatReloader
+INFO 2025-12-02 22:21:01,543 basehttp 46 140126652987072 "GET / HTTP/1.1" 200 291

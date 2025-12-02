@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
+from django.core.validators import validate_email
 from .models import Agency, AgencyTeamMember
 
 User = get_user_model()
@@ -93,15 +94,84 @@ class AgencyForm(forms.ModelForm):
                 self.fields[field].required = False
 
 
+class TeamInvitationForm(forms.Form):
+    """Form for inviting team members via email"""
+    
+    ROLE_CHOICES = [
+        ('manager', _('Manager - Can create and manage campaigns')),
+        ('account_manager', _('Account Manager - Client relationship management')),
+        ('strategist', _('Strategist - Campaign planning and strategy')),
+        ('creative', _('Creative - Content review and approval')),
+        ('analyst', _('Analyst - Analytics and reporting')),
+    ]
+    
+    email = forms.EmailField(
+        widget=forms.EmailInput(attrs={
+            'class': 'form-control',
+            'placeholder': _('Enter email address'),
+            'autocomplete': 'off'
+        }),
+        help_text=_('We\'ll send an invitation to this email address')
+    )
+    
+    role = forms.ChoiceField(
+        choices=ROLE_CHOICES,
+        widget=forms.Select(attrs={
+            'class': 'form-control'
+        }),
+        help_text=_('Select the role for this team member')
+    )
+    
+    message = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 3,
+            'placeholder': _('Optional personal message to include with the invitation...')
+        }),
+        help_text=_('Add a personal message (optional)')
+    )
+    
+    def __init__(self, agency, *args, **kwargs):
+        self.agency = agency
+        super().__init__(*args, **kwargs)
+    
+    def clean_email(self):
+        email = self.cleaned_data['email'].lower()
+        
+        # Check if email is already a team member
+        if AgencyTeamMember.objects.filter(
+            agency=self.agency, 
+            user__email=email, 
+            is_active=True
+        ).exists():
+            raise forms.ValidationError(
+                _('This email address is already a member of your agency.')
+            )
+        
+        # Check if there's already a pending invitation
+        from .models import TeamInvitation
+        if TeamInvitation.objects.filter(
+            agency=self.agency,
+            email=email,
+            status='pending'
+        ).exists():
+            raise forms.ValidationError(
+                _('There is already a pending invitation for this email address.')
+            )
+        
+        return email
+
+
 class AgencyTeamMemberForm(forms.ModelForm):
-    """Form for adding team members to an agency"""
+    """Form for adding existing users to agency team"""
     
     email = forms.EmailField(
         widget=forms.EmailInput(attrs={
             'class': 'form-control',
             'placeholder': _('Team member email')
         }),
-        help_text=_('Enter the email of the user you want to add to your team')
+        help_text=_('Enter the email of an existing user')
     )
     
     class Meta:
@@ -116,6 +186,10 @@ class AgencyTeamMemberForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['role'].required = True
+        
+        # Exclude 'owner' role from choices (only system can assign this)
+        role_choices = [choice for choice in AgencyTeamMember.ROLES if choice[0] != 'owner']
+        self.fields['role'].choices = role_choices
     
     def clean_email(self):
         email = self.cleaned_data['email']
@@ -161,3 +235,35 @@ class AgencySearchForm(forms.Form):
             'placeholder': _('Country')
         })
     )
+
+
+class AgencyOnboardingForm(forms.ModelForm):
+    """Simplified form for initial agency setup after signup"""
+    
+    class Meta:
+        model = Agency
+        fields = ['name', 'city', 'country', 'specialties']
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'form-control form-control-lg',
+                'placeholder': _('What\'s your agency name?')
+            }),
+            'city': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': _('Which city are you based in?')
+            }),
+            'country': forms.TextInput(attrs={
+                'class': 'form-control',
+                'value': 'Morocco'
+            }),
+            'specialties': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': _('What industries do you specialize in? (e.g., Fashion, Tech, Beauty)')
+            }),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['name'].help_text = _('You can change this later in settings')
+        self.fields['specialties'].help_text = _('Separate multiple specialties with commas')
+        self.fields['specialties'].required = False
