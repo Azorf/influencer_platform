@@ -1,0 +1,30 @@
+{
+  "metadata": {
+    "scraped_at": "2025-11-25T23:54:03.623934",
+    "total_records": 1,
+    "source": "socialblade.com",
+    "platform": "instagram"
+  },
+  "data": [
+    {
+      "username": "oumaymach_",
+      "platform": "instagram",
+      "scraped_at": "2025-11-25T23:54:03.622563",
+      "followers_count": 0,
+      "following_count": 0,
+      "posts_count": 0,
+      "engagement_rate": null,
+      "avg_likes": null,
+      "avg_comments": null,
+      "avg_views": null,
+      "avg_shares": null,
+      "avg_saves": null,
+      "followers_14d_ago": null,
+      "followers_growth_14d": null,
+      "followers_growth_rate_14d": null,
+      "posts_count_14d": null,
+      "is_verified": false,
+      "not_found_on_social_blade": true
+    }
+  ]
+}

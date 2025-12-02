@@ -1,0 +1,662 @@
+2025-11-25 23:53:42,083 - INFO - Chrome path: C:\Program Files\Google\Chrome\Application\chrome.exe
+2025-11-25 23:53:42,083 - INFO - Profile path: C:\chrome-debug-profile
+2025-11-25 23:53:42,086 - INFO - Waiting 8 seconds for Chrome to fully start...
+2025-11-25 23:53:56,209 - INFO - Connected to existing Social Blade tab: https://socialblade.com/
+2025-11-25 23:53:56,209 - INFO - Successfully connected to fresh Chrome session!
+2025-11-25 23:53:56,273 - INFO - Found 1 influencers to scrape
+2025-11-25 23:53:56,274 - INFO - Starting scraping session: 1 accounts
+2025-11-25 23:53:56,274 - INFO - 
+Progress: 1/1 - @oumaymach_
+2025-11-25 23:53:56,274 - INFO - Scraping: @oumaymach_
+2025-11-25 23:54:03,621 - WARNING - Error detected in page title: not found - social blade
+2025-11-25 23:54:03,622 - INFO - @oumaymach_ not found on Social Blade - creating NOT FOUND record
+2025-11-25 23:54:03,622 - INFO - NOT FOUND @oumaymach_: Account not on Social Blade (too few followers)
+2025-11-25 23:54:03,622 - INFO - 
+=======================================================
+2025-11-25 23:54:03,622 - INFO - SCRAPING RESULTS SUMMARY
+2025-11-25 23:54:03,622 - INFO - =======================================================
+2025-11-25 23:54:03,623 - INFO - Successfully scraped: 0 accounts
+2025-11-25 23:54:03,623 - INFO - Not found on Social Blade: 1 accounts
+2025-11-25 23:54:03,623 - INFO - Failed (connection errors): 0 accounts
+2025-11-25 23:54:03,623 - INFO - =======================================================
+2025-11-25 23:54:03,623 - INFO -  CSV saved: scraped_data\csv\socialblade_final_20251125_235403.csv (1 records)
+2025-11-25 23:54:03,624 - INFO -  JSON saved: scraped_data\json\socialblade_final_20251125_235403.json (1 records)
+2025-11-25 23:54:03,624 - INFO - Data saved to: scraped_data\csv\socialblade_final_20251125_235403.csv
+2025-11-25 23:54:03,624 - INFO - Backup saved to: scraped_data\json\socialblade_final_20251125_235403.json
+2025-11-25 23:54:03,624 - INFO - 
+TO IMPORT INTO DJANGO:
+2025-11-25 23:54:03,624 - INFO - python manage.py import_social_blade scraped_data\csv\socialblade_final_20251125_235403.csv --platform instagram --update-existing
+2025-11-25 23:54:03,624 - INFO - 
+This CSV includes:
+2025-11-25 23:54:03,624 - INFO - - 0 accounts with Social Blade data
+2025-11-25 23:54:03,624 - INFO - - 1 accounts NOT FOUND (with 0/null values)
+2025-11-25 23:54:03,625 - INFO - Both types will prevent re-scraping for 7 days after import
+2025-11-25 23:54:03,625 - INFO - 
+IMPORTANT: After importing the CSV, both successful and NOT FOUND
+2025-11-25 23:54:03,625 - INFO - accounts will be skipped for 7 days to prevent endless re-scraping.
+2025-11-25 23:54:03,638 - INFO - 
+Scraping complete
+2025-11-25 23:54:03,639 - INFO - Chrome will remain open - you can close it manually when ready
+2025-11-26 11:49:31,913 - INFO - Chrome path: C:\Program Files\Google\Chrome\Application\chrome.exe
+2025-11-26 11:49:31,914 - INFO - Profile path: C:\chrome-debug-profile
+2025-11-26 11:49:31,918 - INFO - Waiting 8 seconds for Chrome to fully start...
+2025-11-26 11:49:47,267 - INFO - Connected to existing Social Blade tab: https://socialblade.com/
+2025-11-26 11:49:47,268 - INFO - Successfully connected to fresh Chrome session!
+2025-11-26 11:49:47,345 - INFO - Found 100 influencers to scrape
+2025-11-26 11:49:47,345 - INFO - Starting scraping session: 100 accounts
+2025-11-26 11:49:47,346 - INFO - 
+Progress: 1/100 - @leilachain
+2025-11-26 11:49:47,346 - INFO - Scraping: @leilachain
+2025-11-26 11:49:55,170 - WARNING - Error detected in page title: not found - social blade
+2025-11-26 11:49:55,170 - INFO - @leilachain not found on Social Blade - creating NOT FOUND record
+2025-11-26 11:49:55,170 - INFO - NOT FOUND @leilachain: Account not on Social Blade (too few followers)
+2025-11-26 11:49:55,170 - INFO - Waiting 47 seconds before next account...
+2025-11-26 11:50:42,175 - INFO - 
+Progress: 2/100 - @lourikimohamed
+2025-11-26 11:50:42,175 - INFO - Scraping: @lourikimohamed
+2025-11-26 11:50:50,113 - INFO - SUCCESS @lourikimohamed: 148,288 followers, 0.5% engagement
+2025-11-26 11:50:50,113 - INFO - Waiting 49 seconds before next account...
+2025-11-26 11:51:39,127 - INFO - 
+Progress: 3/100 - @the9o9o
+2025-11-26 11:51:39,127 - INFO - Scraping: @the9o9o
+2025-11-26 11:51:46,997 - INFO - SUCCESS @the9o9o: 7,789 followers, 7.63% engagement
+2025-11-26 11:51:46,997 - INFO - Waiting 51 seconds before next account...
+2025-11-26 11:52:38,000 - INFO - 
+Progress: 4/100 - @lifewithayajabri
+2025-11-26 11:52:38,000 - INFO - Scraping: @lifewithayajabri
+2025-11-26 11:52:45,745 - INFO - SUCCESS @lifewithayajabri: 295,554 followers, 17.72% engagement
+2025-11-26 11:52:45,745 - INFO - Waiting 53 seconds before next account...
+2025-11-26 11:53:38,753 - INFO - 
+Progress: 5/100 - @kennedyclairewalsh
+2025-11-26 11:53:38,754 - INFO - Scraping: @kennedyclairewalsh
+2025-11-26 11:53:46,605 - INFO - SUCCESS @kennedyclairewalsh: 1,725,402 followers, 8.3% engagement
+2025-11-26 11:53:46,606 - INFO -  CSV saved: scraped_data\csv\socialblade_progress_5_20251126_115346.csv (4 records)
+2025-11-26 11:53:46,606 - INFO - Progress saved: socialblade_progress_5_20251126_115346.csv
+2025-11-26 11:53:46,606 - INFO - Waiting 55 seconds before next account...
+2025-11-26 11:54:41,611 - INFO - 
+Progress: 6/100 - @nadzsnacks
+2025-11-26 11:54:41,611 - INFO - Scraping: @nadzsnacks
+2025-11-26 11:54:49,225 - INFO - SUCCESS @nadzsnacks: 330,886 followers, 2.11% engagement
+2025-11-26 11:54:49,225 - INFO - Waiting 57 seconds before next account...
+2025-11-26 11:55:46,241 - INFO - 
+Progress: 7/100 - @manalbenchlikha
+2025-11-26 11:55:46,241 - INFO - Scraping: @manalbenchlikha
+2025-11-26 11:55:53,959 - INFO - SUCCESS @manalbenchlikha: 4,632,682 followers, 2.91% engagement
+2025-11-26 11:55:53,959 - INFO - Waiting 59 seconds before next account...
+2025-11-26 11:56:52,960 - INFO - 
+Progress: 8/100 - @ibtissam_fajar
+2025-11-26 11:56:52,960 - INFO - Scraping: @ibtissam_fajar
+2025-11-26 11:57:00,783 - INFO - SUCCESS @ibtissam_fajar: 19,422 followers, 1.18% engagement
+2025-11-26 11:57:00,783 - INFO - Waiting 61 seconds before next account...
+2025-11-26 11:58:01,794 - INFO - 
+Progress: 9/100 - @hindou_
+2025-11-26 11:58:01,795 - INFO - Scraping: @hindou_
+2025-11-26 11:58:09,541 - WARNING - Error detected in page title: not found - social blade
+2025-11-26 11:58:09,541 - INFO - @hindou_ not found on Social Blade - creating NOT FOUND record
+2025-11-26 11:58:09,541 - INFO - NOT FOUND @hindou_: Account not on Social Blade (too few followers)
+2025-11-26 11:58:09,542 - INFO - Waiting 63 seconds before next account...
+2025-11-26 11:59:12,558 - INFO - 
+Progress: 10/100 - @lamitta.el
+2025-11-26 11:59:12,558 - INFO - Scraping: @lamitta.el
+2025-11-26 11:59:21,037 - WARNING - Error detected in page title: not found - social blade
+2025-11-26 11:59:21,038 - INFO - @lamitta.el not found on Social Blade - creating NOT FOUND record
+2025-11-26 11:59:21,038 - INFO - NOT FOUND @lamitta.el: Account not on Social Blade (too few followers)
+2025-11-26 11:59:21,039 - INFO -  CSV saved: scraped_data\csv\socialblade_progress_10_20251126_115921.csv (7 records)
+2025-11-26 11:59:21,039 - INFO - Progress saved: socialblade_progress_10_20251126_115921.csv
+2025-11-26 11:59:21,039 - INFO - Waiting 75 seconds before next account...
+2025-11-26 12:00:36,049 - INFO - 
+Progress: 11/100 - @saifbenniss
+2025-11-26 12:00:36,049 - INFO - Scraping: @saifbenniss
+2025-11-26 12:00:44,805 - INFO - SUCCESS @saifbenniss: 2,089 followers, 3.26% engagement
+2025-11-26 12:00:44,806 - INFO - Waiting 77 seconds before next account...
+2025-11-26 12:02:01,816 - INFO - 
+Progress: 12/100 - @simbarashecha
+2025-11-26 12:02:01,817 - INFO - Scraping: @simbarashecha
+2025-11-26 12:02:09,505 - INFO - SUCCESS @simbarashecha: 34,787 followers, 0.27% engagement
+2025-11-26 12:02:09,505 - INFO - Waiting 79 seconds before next account...
+2025-11-26 12:03:28,520 - INFO - 
+Progress: 13/100 - @badgalberry
+2025-11-26 12:03:28,521 - INFO - Scraping: @badgalberry
+2025-11-26 12:03:36,192 - INFO - SUCCESS @badgalberry: 29,820 followers, 4.15% engagement
+2025-11-26 12:03:36,192 - INFO - Waiting 81 seconds before next account...
+2025-11-26 12:04:57,203 - INFO - 
+Progress: 14/100 - @sara_semmar
+2025-11-26 12:04:57,203 - INFO - Scraping: @sara_semmar
+2025-11-26 12:05:05,020 - WARNING - Error detected in page title: not found - social blade
+2025-11-26 12:05:05,020 - INFO - @sara_semmar not found on Social Blade - creating NOT FOUND record
+2025-11-26 12:05:05,021 - INFO - NOT FOUND @sara_semmar: Account not on Social Blade (too few followers)
+2025-11-26 12:05:05,021 - INFO - Waiting 83 seconds before next account...
+2025-11-26 12:06:28,034 - INFO - 
+Progress: 15/100 - @tasnim_cheham_officiel
+2025-11-26 12:06:28,035 - INFO - Scraping: @tasnim_cheham_officiel
+2025-11-26 12:06:35,820 - INFO - SUCCESS @tasnim_cheham_officiel: 314,430 followers, 21.89% engagement
+2025-11-26 12:06:35,821 - INFO -  CSV saved: scraped_data\csv\socialblade_progress_15_20251126_120635.csv (11 records)
+2025-11-26 12:06:35,821 - INFO - Progress saved: socialblade_progress_15_20251126_120635.csv
+2025-11-26 12:06:35,822 - INFO - Waiting 85 seconds before next account...
+2025-11-26 12:08:00,823 - INFO - 
+Progress: 16/100 - @aitamonamour
+2025-11-26 12:08:00,824 - INFO - Scraping: @aitamonamour
+2025-11-26 12:08:09,465 - INFO - SUCCESS @aitamonamour: 66,562 followers, 0.8% engagement
+2025-11-26 12:08:09,465 - INFO - Waiting 87 seconds before next account...
+2025-11-26 12:09:36,471 - INFO - 
+Progress: 17/100 - @soultanahmed
+2025-11-26 12:09:36,471 - INFO - Scraping: @soultanahmed
+2025-11-26 12:09:44,324 - INFO - SUCCESS @soultanahmed: 114,116 followers, 1.96% engagement
+2025-11-26 12:09:44,324 - INFO - Waiting 89 seconds before next account...
+2025-11-26 12:11:13,325 - INFO - 
+Progress: 18/100 - @notnouhaila
+2025-11-26 12:11:13,325 - INFO - Scraping: @notnouhaila
+2025-11-26 12:11:21,424 - WARNING - Error detected in page title: not found - social blade
+2025-11-26 12:11:21,424 - INFO - @notnouhaila not found on Social Blade - creating NOT FOUND record
+2025-11-26 12:11:21,424 - INFO - NOT FOUND @notnouhaila: Account not on Social Blade (too few followers)
+2025-11-26 12:11:21,425 - INFO - Waiting 91 seconds before next account...
+2025-11-26 12:12:52,426 - INFO - 
+Progress: 19/100 - @chaymaa_rawi
+2025-11-26 12:12:52,427 - INFO - Scraping: @chaymaa_rawi
+2025-11-26 12:13:00,218 - WARNING - Error detected in page title: not found - social blade
+2025-11-26 12:13:00,218 - INFO - @chaymaa_rawi not found on Social Blade - creating NOT FOUND record
+2025-11-26 12:13:00,218 - INFO - NOT FOUND @chaymaa_rawi: Account not on Social Blade (too few followers)
+2025-11-26 12:13:00,218 - INFO - Waiting 93 seconds before next account...
+2025-11-26 12:14:33,221 - INFO - 
+Progress: 20/100 - @kohinor.hotelspa
+2025-11-26 12:14:33,221 - INFO - Scraping: @kohinor.hotelspa
+2025-11-26 12:14:41,782 - INFO - SUCCESS @kohinor.hotelspa: 5,547 followers, 1.13% engagement
+2025-11-26 12:14:41,783 - INFO -  CSV saved: scraped_data\csv\socialblade_progress_20_20251126_121441.csv (14 records)
+2025-11-26 12:14:41,783 - INFO - Progress saved: socialblade_progress_20_20251126_121441.csv
+2025-11-26 12:14:41,783 - INFO - Waiting 105 seconds before next account...
+2025-11-26 12:16:26,785 - INFO - 
+Progress: 21/100 - @niveacavalcannte
+2025-11-26 12:16:26,785 - INFO - Scraping: @niveacavalcannte
+2025-11-26 12:16:34,991 - INFO - SUCCESS @niveacavalcannte: 500,881 followers, 3.81% engagement
+2025-11-26 12:16:34,991 - INFO - Waiting 107 seconds before next account...
+2025-11-26 12:18:21,997 - INFO - 
+Progress: 22/100 - @ben10nanat
+2025-11-26 12:18:21,998 - INFO - Scraping: @ben10nanat
+2025-11-26 12:18:29,752 - WARNING - Error detected in page title: not found - social blade
+2025-11-26 12:18:29,752 - INFO - @ben10nanat not found on Social Blade - creating NOT FOUND record
+2025-11-26 12:18:29,752 - INFO - NOT FOUND @ben10nanat: Account not on Social Blade (too few followers)
+2025-11-26 12:18:29,752 - INFO - Waiting 109 seconds before next account...
+2025-11-26 12:20:18,758 - INFO - 
+Progress: 23/100 - @miramade.creates
+2025-11-26 12:20:18,759 - INFO - Scraping: @miramade.creates
+2025-11-26 12:20:27,043 - WARNING - Error detected in page title: not found - social blade
+2025-11-26 12:20:27,043 - INFO - @miramade.creates not found on Social Blade - creating NOT FOUND record
+2025-11-26 12:20:27,043 - INFO - NOT FOUND @miramade.creates: Account not on Social Blade (too few followers)
+2025-11-26 12:20:27,043 - INFO - Waiting 111 seconds before next account...
+2025-11-26 12:22:18,049 - INFO - 
+Progress: 24/100 - @chayvatic
+2025-11-26 12:22:18,049 - INFO - Scraping: @chayvatic
+2025-11-26 12:22:27,905 - WARNING - Error detected in page title: not found - social blade
+2025-11-26 12:22:27,905 - INFO - @chayvatic not found on Social Blade - creating NOT FOUND record
+2025-11-26 12:22:27,905 - INFO - NOT FOUND @chayvatic: Account not on Social Blade (too few followers)
+2025-11-26 12:22:27,905 - INFO - Waiting 113 seconds before next account...
+2025-11-26 12:24:20,910 - INFO - 
+Progress: 25/100 - @mohamed_alouane
+2025-11-26 12:24:20,910 - INFO - Scraping: @mohamed_alouane
+2025-11-26 12:24:30,215 - INFO - SUCCESS @mohamed_alouane: 2,807 followers, 13.74% engagement
+2025-11-26 12:24:30,216 - INFO -  CSV saved: scraped_data\csv\socialblade_progress_25_20251126_122430.csv (16 records)
+2025-11-26 12:24:30,216 - INFO - Progress saved: socialblade_progress_25_20251126_122430.csv
+2025-11-26 12:24:30,217 - INFO - Waiting 115 seconds before next account...
+2025-11-26 12:26:25,220 - INFO - 
+Progress: 26/100 - @meryem_hajby
+2025-11-26 12:26:25,220 - INFO - Scraping: @meryem_hajby
+2025-11-26 12:26:33,136 - WARNING - Error detected in page title: not found - social blade
+2025-11-26 12:26:33,136 - INFO - @meryem_hajby not found on Social Blade - creating NOT FOUND record
+2025-11-26 12:26:33,137 - INFO - NOT FOUND @meryem_hajby: Account not on Social Blade (too few followers)
+2025-11-26 12:26:33,137 - INFO - Waiting 117 seconds before next account...
+2025-11-26 12:28:30,150 - INFO - 
+Progress: 27/100 - @myshala.ma
+2025-11-26 12:28:30,151 - INFO - Scraping: @myshala.ma
+2025-11-26 12:28:38,116 - INFO - SUCCESS @myshala.ma: 13,884 followers, 0.17% engagement
+2025-11-26 12:28:38,116 - INFO - Waiting 119 seconds before next account...
+2025-11-26 12:30:37,126 - INFO - 
+Progress: 28/100 - @hamza.kabbaj1
+2025-11-26 12:30:37,126 - INFO - Scraping: @hamza.kabbaj1
+2025-11-26 12:30:45,078 - WARNING - Error detected in page title: not found - social blade
+2025-11-26 12:30:45,079 - INFO - @hamza.kabbaj1 not found on Social Blade - creating NOT FOUND record
+2025-11-26 12:30:45,079 - INFO - NOT FOUND @hamza.kabbaj1: Account not on Social Blade (too few followers)
+2025-11-26 12:30:45,079 - INFO - Waiting 121 seconds before next account...
+2025-11-26 12:32:46,090 - INFO - 
+Progress: 29/100 - @lady_skalli
+2025-11-26 12:32:46,090 - INFO - Scraping: @lady_skalli
+2025-11-26 12:32:54,562 - INFO - SUCCESS @lady_skalli: 367,779 followers, 2.78% engagement
+2025-11-26 12:32:54,562 - INFO - Waiting 123 seconds before next account...
+2025-11-26 12:34:57,567 - INFO - 
+Progress: 30/100 - @scary.strawberry
+2025-11-26 12:34:57,568 - INFO - Scraping: @scary.strawberry
+2025-11-26 12:35:05,233 - INFO - SUCCESS @scary.strawberry: 10,046 followers, 6.56% engagement
+2025-11-26 12:35:05,234 - INFO -  CSV saved: scraped_data\csv\socialblade_progress_30_20251126_123505.csv (19 records)
+2025-11-26 12:35:05,234 - INFO - Progress saved: socialblade_progress_30_20251126_123505.csv
+2025-11-26 12:35:05,234 - INFO - Waiting 135 seconds before next account...
+2025-11-26 12:37:20,244 - INFO - 
+Progress: 31/100 - @majdajarbili
+2025-11-26 12:37:20,244 - INFO - Scraping: @majdajarbili
+2025-11-26 12:37:28,178 - INFO - SUCCESS @majdajarbili: 6,941 followers, 5.43% engagement
+2025-11-26 12:37:28,179 - INFO - Waiting 137 seconds before next account...
+2025-11-26 12:39:45,192 - INFO - 
+Progress: 32/100 - @_saad.berrada_
+2025-11-26 12:39:45,193 - INFO - Scraping: @_saad.berrada_
+2025-11-26 12:39:52,893 - INFO - SUCCESS @_saad.berrada_: 5,684 followers, 67.33% engagement
+2025-11-26 12:39:52,893 - INFO - Waiting 139 seconds before next account...
+2025-11-26 12:42:11,906 - INFO - 
+Progress: 33/100 - @melo_melo_art
+2025-11-26 12:42:11,906 - INFO - Scraping: @melo_melo_art
+2025-11-26 12:42:19,763 - INFO - SUCCESS @melo_melo_art: 2,993 followers, 9.72% engagement
+2025-11-26 12:42:19,764 - INFO - Waiting 141 seconds before next account...
+2025-11-26 12:44:40,766 - INFO - 
+Progress: 34/100 - @hakeemerajai
+2025-11-26 12:44:40,766 - INFO - Scraping: @hakeemerajai
+2025-11-26 12:44:48,408 - INFO - SUCCESS @hakeemerajai: 18,743 followers, 0.02% engagement
+2025-11-26 12:44:48,408 - INFO - Waiting 143 seconds before next account...
+2025-11-26 12:47:11,418 - INFO - 
+Progress: 35/100 - @samifekkak
+2025-11-26 12:47:11,418 - INFO - Scraping: @samifekkak
+2025-11-26 12:47:19,129 - INFO - SUCCESS @samifekkak: 84,277 followers, 1.31% engagement
+2025-11-26 12:47:19,130 - INFO -  CSV saved: scraped_data\csv\socialblade_progress_35_20251126_124719.csv (24 records)
+2025-11-26 12:47:19,130 - INFO - Progress saved: socialblade_progress_35_20251126_124719.csv
+2025-11-26 12:47:19,130 - INFO - Waiting 145 seconds before next account...
+2025-11-26 12:49:44,133 - INFO - 
+Progress: 36/100 - @saocurious
+2025-11-26 12:49:44,133 - INFO - Scraping: @saocurious
+2025-11-26 12:49:51,996 - INFO - SUCCESS @saocurious: 212,226 followers, 2.59% engagement
+2025-11-26 12:49:51,997 - INFO - Waiting 147 seconds before next account...
+2025-11-26 12:52:19,013 - INFO - 
+Progress: 37/100 - @hassan.baraka
+2025-11-26 12:52:19,013 - INFO - Scraping: @hassan.baraka
+2025-11-26 12:52:26,825 - INFO - SUCCESS @hassan.baraka: 32,407 followers, 0.64% engagement
+2025-11-26 12:52:26,825 - INFO - Waiting 149 seconds before next account...
+2025-11-26 12:54:55,829 - INFO - 
+Progress: 38/100 - @akeltoum
+2025-11-26 12:54:55,829 - INFO - Scraping: @akeltoum
+2025-11-26 12:55:03,674 - WARNING - Error detected in page title: not found - social blade
+2025-11-26 12:55:03,674 - INFO - @akeltoum not found on Social Blade - creating NOT FOUND record
+2025-11-26 12:55:03,674 - INFO - NOT FOUND @akeltoum: Account not on Social Blade (too few followers)
+2025-11-26 12:55:03,674 - INFO - Waiting 151 seconds before next account...
+2025-11-26 12:57:34,680 - INFO - 
+Progress: 39/100 - @ahmed.ahed1
+2025-11-26 12:57:34,681 - INFO - Scraping: @ahmed.ahed1
+2025-11-26 12:57:43,923 - INFO - SUCCESS @ahmed.ahed1: 13,160 followers, 0.41% engagement
+2025-11-26 12:57:43,924 - INFO - Waiting 153 seconds before next account...
+2025-11-26 13:00:16,936 - INFO - 
+Progress: 40/100 - @oumnia_chefchaouni_officiel_
+2025-11-26 13:00:16,936 - INFO - Scraping: @oumnia_chefchaouni_officiel_
+2025-11-26 13:00:24,661 - INFO - SUCCESS @oumnia_chefchaouni_officiel_: 513,201 followers, 3.07% engagement
+2025-11-26 13:00:24,663 - INFO -  CSV saved: scraped_data\csv\socialblade_progress_40_20251126_130024.csv (28 records)
+2025-11-26 13:00:24,664 - INFO - Progress saved: socialblade_progress_40_20251126_130024.csv
+2025-11-26 13:00:24,664 - INFO - Waiting 165 seconds before next account...
+2025-11-26 13:03:09,672 - INFO - 
+Progress: 41/100 - @yavannadivinity
+2025-11-26 13:03:09,672 - INFO - Scraping: @yavannadivinity
+2025-11-26 13:03:18,769 - WARNING - Error detected in page title: not found - social blade
+2025-11-26 13:03:18,769 - INFO - @yavannadivinity not found on Social Blade - creating NOT FOUND record
+2025-11-26 13:03:18,769 - INFO - NOT FOUND @yavannadivinity: Account not on Social Blade (too few followers)
+2025-11-26 13:03:18,769 - INFO - Waiting 167 seconds before next account...
+2025-11-26 13:06:05,770 - INFO - 
+Progress: 42/100 - @shera
+2025-11-26 13:06:05,771 - INFO - Scraping: @shera
+2025-11-26 13:06:13,489 - INFO - SUCCESS @shera: 1,306,679 followers, 1.79% engagement
+2025-11-26 13:06:13,489 - INFO - Waiting 169 seconds before next account...
+2025-11-26 13:09:02,490 - INFO - 
+Progress: 43/100 - @sally.lasely
+2025-11-26 13:09:02,490 - INFO - Scraping: @sally.lasely
+2025-11-26 13:09:10,335 - WARNING - Error detected in page title: not found - social blade
+2025-11-26 13:09:10,335 - INFO - @sally.lasely not found on Social Blade - creating NOT FOUND record
+2025-11-26 13:09:10,336 - INFO - NOT FOUND @sally.lasely: Account not on Social Blade (too few followers)
+2025-11-26 13:09:10,336 - INFO - Waiting 171 seconds before next account...
+2025-11-26 13:12:01,342 - INFO - 
+Progress: 44/100 - @chikhi_mustafa
+2025-11-26 13:12:01,342 - INFO - Scraping: @chikhi_mustafa
+2025-11-26 13:12:09,867 - WARNING - Error detected in page title: not found - social blade
+2025-11-26 13:12:09,867 - INFO - @chikhi_mustafa not found on Social Blade - creating NOT FOUND record
+2025-11-26 13:12:09,867 - INFO - NOT FOUND @chikhi_mustafa: Account not on Social Blade (too few followers)
+2025-11-26 13:12:09,867 - INFO - Waiting 173 seconds before next account...
+2025-11-26 13:15:02,868 - INFO - 
+Progress: 45/100 - @yasminehadhoumi
+2025-11-26 13:15:02,869 - INFO - Scraping: @yasminehadhoumi
+2025-11-26 13:15:10,723 - WARNING - Error detected in page title: not found - social blade
+2025-11-26 13:15:10,723 - INFO - @yasminehadhoumi not found on Social Blade - creating NOT FOUND record
+2025-11-26 13:15:10,724 - INFO - NOT FOUND @yasminehadhoumi: Account not on Social Blade (too few followers)
+2025-11-26 13:15:10,725 - INFO -  CSV saved: scraped_data\csv\socialblade_progress_45_20251126_131510.csv (29 records)
+2025-11-26 13:15:10,725 - INFO - Progress saved: socialblade_progress_45_20251126_131510.csv
+2025-11-26 13:15:10,725 - INFO - Waiting 175 seconds before next account...
+2025-11-26 13:18:05,731 - INFO - 
+Progress: 46/100 - @ghadfa_
+2025-11-26 13:18:05,731 - INFO - Scraping: @ghadfa_
+2025-11-26 13:18:13,591 - INFO - SUCCESS @ghadfa_: 9,288 followers, 0.0% engagement
+2025-11-26 13:18:13,591 - INFO - Waiting 177 seconds before next account...
+2025-11-26 13:21:10,593 - INFO - 
+Progress: 47/100 - @jenniferholmestrachen
+2025-11-26 13:21:10,594 - INFO - Scraping: @jenniferholmestrachen
+2025-11-26 13:21:18,571 - WARNING - Error detected in page title: not found - social blade
+2025-11-26 13:21:18,571 - INFO - @jenniferholmestrachen not found on Social Blade - creating NOT FOUND record
+2025-11-26 13:21:18,572 - INFO - NOT FOUND @jenniferholmestrachen: Account not on Social Blade (too few followers)
+2025-11-26 13:21:18,572 - INFO - Waiting 179 seconds before next account...
+2025-11-26 13:24:17,583 - INFO - 
+Progress: 48/100 - @idriss.charradi
+2025-11-26 13:24:17,583 - INFO - Scraping: @idriss.charradi
+2025-11-26 13:24:25,530 - WARNING - Error detected in page title: not found - social blade
+2025-11-26 13:24:25,531 - INFO - @idriss.charradi not found on Social Blade - creating NOT FOUND record
+2025-11-26 13:24:25,531 - INFO - NOT FOUND @idriss.charradi: Account not on Social Blade (too few followers)
+2025-11-26 13:24:25,531 - INFO - Waiting 181 seconds before next account...
+2025-11-26 13:27:26,534 - INFO - 
+Progress: 49/100 - @said.tlemcani
+2025-11-26 13:27:26,534 - INFO - Scraping: @said.tlemcani
+2025-11-26 13:27:34,247 - WARNING - Error detected in page title: not found - social blade
+2025-11-26 13:27:34,247 - INFO - @said.tlemcani not found on Social Blade - creating NOT FOUND record
+2025-11-26 13:27:34,248 - INFO - NOT FOUND @said.tlemcani: Account not on Social Blade (too few followers)
+2025-11-26 13:27:34,248 - INFO - Waiting 183 seconds before next account...
+2025-11-26 13:30:37,263 - INFO - 
+Progress: 50/100 - @s.elbeloui
+2025-11-26 13:30:37,264 - INFO - Scraping: @s.elbeloui
+2025-11-26 13:30:45,158 - INFO - SUCCESS @s.elbeloui: 666,361 followers, 0.13% engagement
+2025-11-26 13:30:45,159 - INFO -  CSV saved: scraped_data\csv\socialblade_progress_50_20251126_133045.csv (31 records)
+2025-11-26 13:30:45,159 - INFO - Progress saved: socialblade_progress_50_20251126_133045.csv
+2025-11-26 13:30:45,159 - INFO - Waiting 195 seconds before next account...
+2025-11-26 13:34:00,164 - INFO - 
+Progress: 51/100 - @linayahyaoui
+2025-11-26 13:34:00,165 - INFO - Scraping: @linayahyaoui
+2025-11-26 13:34:07,885 - INFO - SUCCESS @linayahyaoui: 707,162 followers, 4.87% engagement
+2025-11-26 13:34:07,886 - INFO - Waiting 197 seconds before next account...
+2025-11-26 13:37:24,899 - INFO - 
+Progress: 52/100 - @tarik_elboukhari
+2025-11-26 13:37:24,899 - INFO - Scraping: @tarik_elboukhari
+2025-11-26 13:37:33,424 - INFO - SUCCESS @tarik_elboukhari: 672,891 followers, 0.81% engagement
+2025-11-26 13:37:33,424 - INFO - Waiting 199 seconds before next account...
+2025-11-26 13:40:52,432 - INFO - 
+Progress: 53/100 - @lenamahfouf
+2025-11-26 13:40:52,432 - INFO - Scraping: @lenamahfouf
+2025-11-26 13:41:00,317 - INFO - SUCCESS @lenamahfouf: 5,021,317 followers, 3.26% engagement
+2025-11-26 13:41:00,317 - INFO - Waiting 201 seconds before next account...
+2025-11-26 13:44:21,331 - INFO - 
+Progress: 54/100 - @alichuree
+2025-11-26 13:44:21,332 - INFO - Scraping: @alichuree
+2025-11-26 13:44:28,985 - INFO - SUCCESS @alichuree: 771,405 followers, 2.8% engagement
+2025-11-26 13:44:28,986 - INFO - Waiting 203 seconds before next account...
+2025-11-26 13:47:51,991 - INFO - 
+Progress: 55/100 - @grossomodo._
+2025-11-26 13:47:51,991 - INFO - Scraping: @grossomodo._
+2025-11-26 13:47:59,680 - INFO - SUCCESS @grossomodo._: 361,783 followers, 0.74% engagement
+2025-11-26 13:47:59,681 - INFO -  CSV saved: scraped_data\csv\socialblade_progress_55_20251126_134759.csv (36 records)
+2025-11-26 13:47:59,681 - INFO - Progress saved: socialblade_progress_55_20251126_134759.csv
+2025-11-26 13:47:59,681 - INFO - Waiting 205 seconds before next account...
+2025-11-26 13:51:24,693 - INFO - 
+Progress: 56/100 - @lauratravelbook
+2025-11-26 13:51:24,693 - INFO - Scraping: @lauratravelbook
+2025-11-26 13:51:32,460 - INFO - SUCCESS @lauratravelbook: 275,179 followers, 3.45% engagement
+2025-11-26 13:51:32,460 - INFO - Waiting 207 seconds before next account...
+2025-11-26 13:54:59,467 - INFO - 
+Progress: 57/100 - @chaaiimaaae
+2025-11-26 13:54:59,468 - INFO - Scraping: @chaaiimaaae
+2025-11-26 13:55:07,290 - WARNING - Error detected in page title: not found - social blade
+2025-11-26 13:55:07,290 - INFO - @chaaiimaaae not found on Social Blade - creating NOT FOUND record
+2025-11-26 13:55:07,290 - INFO - NOT FOUND @chaaiimaaae: Account not on Social Blade (too few followers)
+2025-11-26 13:55:07,290 - INFO - Waiting 209 seconds before next account...
+2025-11-26 13:58:36,293 - INFO - 
+Progress: 58/100 - @anasbenniss
+2025-11-26 13:58:36,293 - INFO - Scraping: @anasbenniss
+2025-11-26 13:58:44,144 - INFO - SUCCESS @anasbenniss: 167,926 followers, 19.22% engagement
+2025-11-26 13:58:44,144 - INFO - Waiting 211 seconds before next account...
+2025-11-26 14:02:15,155 - INFO - 
+Progress: 59/100 - @karim.elhamri
+2025-11-26 14:02:15,155 - INFO - Scraping: @karim.elhamri
+2025-11-26 14:02:23,948 - INFO - SUCCESS @karim.elhamri: 4,302 followers, 4.81% engagement
+2025-11-26 14:02:23,948 - INFO - Waiting 213 seconds before next account...
+2025-11-26 14:05:56,963 - INFO - 
+Progress: 60/100 - @yassmine_chatrab
+2025-11-26 14:05:56,963 - INFO - Scraping: @yassmine_chatrab
+2025-11-26 14:06:04,875 - INFO - SUCCESS @yassmine_chatrab: 50,216 followers, 4.01% engagement
+2025-11-26 14:06:04,877 - INFO -  CSV saved: scraped_data\csv\socialblade_progress_60_20251126_140604.csv (40 records)
+2025-11-26 14:06:04,877 - INFO - Progress saved: socialblade_progress_60_20251126_140604.csv
+2025-11-26 14:06:04,878 - INFO - Waiting 215 seconds before next account...
+2025-11-26 14:09:39,883 - INFO - 
+Progress: 61/100 - @lateralus_ink
+2025-11-26 14:09:39,884 - INFO - Scraping: @lateralus_ink
+2025-11-26 14:09:50,637 - INFO - SUCCESS @lateralus_ink: 11,144 followers, 2.89% engagement
+2025-11-26 14:09:50,637 - INFO - Waiting 217 seconds before next account...
+2025-11-26 14:13:27,640 - INFO - 
+Progress: 62/100 - @tetefaaaaaatokyooo
+2025-11-26 14:13:27,641 - INFO - Scraping: @tetefaaaaaatokyooo
+2025-11-26 14:13:35,747 - WARNING - Error detected in page title: not found - social blade
+2025-11-26 14:13:35,747 - INFO - @tetefaaaaaatokyooo not found on Social Blade - creating NOT FOUND record
+2025-11-26 14:13:35,747 - INFO - NOT FOUND @tetefaaaaaatokyooo: Account not on Social Blade (too few followers)
+2025-11-26 14:13:35,748 - INFO - Waiting 219 seconds before next account...
+2025-11-26 14:17:14,748 - INFO - 
+Progress: 63/100 - @oumqueerthoum
+2025-11-26 14:17:14,749 - INFO - Scraping: @oumqueerthoum
+2025-11-26 14:17:22,623 - WARNING - Error detected in page title: not found - social blade
+2025-11-26 14:17:22,623 - INFO - @oumqueerthoum not found on Social Blade - creating NOT FOUND record
+2025-11-26 14:17:22,624 - INFO - NOT FOUND @oumqueerthoum: Account not on Social Blade (too few followers)
+2025-11-26 14:17:22,624 - INFO - Waiting 221 seconds before next account...
+2025-11-26 14:21:03,627 - INFO - 
+Progress: 64/100 - @duojourneys
+2025-11-26 14:21:03,628 - INFO - Scraping: @duojourneys
+2025-11-26 14:21:12,116 - INFO - SUCCESS @duojourneys: 61,071 followers, 2.48% engagement
+2025-11-26 14:21:12,116 - INFO - Waiting 223 seconds before next account...
+2025-11-26 14:24:55,125 - INFO - 
+Progress: 65/100 - @houda.fonone
+2025-11-26 14:24:55,126 - INFO - Scraping: @houda.fonone
+2025-11-26 14:25:03,686 - INFO - SUCCESS @houda.fonone: 28,276 followers, 0.24% engagement
+2025-11-26 14:25:03,687 - INFO -  CSV saved: scraped_data\csv\socialblade_progress_65_20251126_142503.csv (43 records)
+2025-11-26 14:25:03,687 - INFO - Progress saved: socialblade_progress_65_20251126_142503.csv
+2025-11-26 14:25:03,687 - INFO - Waiting 225 seconds before next account...
+2025-11-26 14:28:48,699 - INFO - 
+Progress: 66/100 - @fromcarlyb
+2025-11-26 14:28:48,699 - INFO - Scraping: @fromcarlyb
+2025-11-26 14:28:56,551 - INFO - SUCCESS @fromcarlyb: 143,723 followers, 2.45% engagement
+2025-11-26 14:28:56,551 - INFO - Waiting 227 seconds before next account...
+2025-11-26 14:32:43,562 - INFO - 
+Progress: 67/100 - @mohamed.charmougue
+2025-11-26 14:32:43,562 - INFO - Scraping: @mohamed.charmougue
+2025-11-26 14:32:51,378 - INFO - SUCCESS @mohamed.charmougue: 357,620 followers, 6.81% engagement
+2025-11-26 14:32:51,379 - INFO - Waiting 229 seconds before next account...
+2025-11-26 14:36:40,385 - INFO - 
+Progress: 68/100 - @glowbymimi_
+2025-11-26 14:36:40,386 - INFO - Scraping: @glowbymimi_
+2025-11-26 14:36:48,240 - INFO - SUCCESS @glowbymimi_: 141,067 followers, 2.49% engagement
+2025-11-26 14:36:48,240 - INFO - Waiting 231 seconds before next account...
+2025-11-26 14:40:39,243 - INFO - 
+Progress: 69/100 - @otmansalil
+2025-11-26 14:40:39,243 - INFO - Scraping: @otmansalil
+2025-11-26 14:40:47,043 - WARNING - Error detected in page title: not found - social blade
+2025-11-26 14:40:47,043 - INFO - @otmansalil not found on Social Blade - creating NOT FOUND record
+2025-11-26 14:40:47,043 - INFO - NOT FOUND @otmansalil: Account not on Social Blade (too few followers)
+2025-11-26 14:40:47,043 - INFO - Waiting 233 seconds before next account...
+2025-11-26 14:44:40,046 - INFO - 
+Progress: 70/100 - @rimkadiriofficiel
+2025-11-26 14:44:40,046 - INFO - Scraping: @rimkadiriofficiel
+2025-11-26 14:44:47,738 - INFO - SUCCESS @rimkadiriofficiel: 417,844 followers, 0.65% engagement
+2025-11-26 14:44:47,739 - INFO -  CSV saved: scraped_data\csv\socialblade_progress_70_20251126_144447.csv (47 records)
+2025-11-26 14:44:47,739 - INFO - Progress saved: socialblade_progress_70_20251126_144447.csv
+2025-11-26 14:44:47,740 - INFO - Waiting 235 seconds before next account...
+2025-11-26 14:48:42,744 - INFO - 
+Progress: 71/100 - @artefr
+2025-11-26 14:48:42,744 - INFO - Scraping: @artefr
+2025-11-26 14:48:50,326 - INFO - SUCCESS @artefr: 2,538,496 followers, 0.48% engagement
+2025-11-26 14:48:50,327 - INFO - Waiting 237 seconds before next account...
+2025-11-26 14:52:47,338 - INFO - 
+Progress: 72/100 - @littlebodybigheart
+2025-11-26 14:52:47,338 - INFO - Scraping: @littlebodybigheart
+2025-11-26 14:52:55,070 - INFO - SUCCESS @littlebodybigheart: 14,199,028 followers, 7.86% engagement
+2025-11-26 14:52:55,070 - INFO - Waiting 239 seconds before next account...
+2025-11-26 14:56:54,078 - INFO - 
+Progress: 73/100 - @oussama_touaf
+2025-11-26 14:56:54,078 - INFO - Scraping: @oussama_touaf
+2025-11-26 14:57:02,032 - WARNING - Error detected in page title: not found - social blade
+2025-11-26 14:57:02,032 - INFO - @oussama_touaf not found on Social Blade - creating NOT FOUND record
+2025-11-26 14:57:02,033 - INFO - NOT FOUND @oussama_touaf: Account not on Social Blade (too few followers)
+2025-11-26 14:57:02,033 - INFO - Waiting 241 seconds before next account...
+2025-11-26 15:01:03,035 - INFO - 
+Progress: 74/100 - @gaellegd
+2025-11-26 15:01:03,035 - INFO - Scraping: @gaellegd
+2025-11-26 15:01:10,667 - INFO - SUCCESS @gaellegd: 1,614,271 followers, 3.01% engagement
+2025-11-26 15:01:10,667 - INFO - Waiting 243 seconds before next account...
+2025-11-26 15:05:13,671 - INFO - 
+Progress: 75/100 - @ssamiha
+2025-11-26 15:05:13,671 - INFO - Scraping: @ssamiha
+2025-11-26 15:05:21,404 - INFO - SUCCESS @ssamiha: 238,605 followers, 1.17% engagement
+2025-11-26 15:05:21,405 - INFO -  CSV saved: scraped_data\csv\socialblade_progress_75_20251126_150521.csv (51 records)
+2025-11-26 15:05:21,405 - INFO - Progress saved: socialblade_progress_75_20251126_150521.csv
+2025-11-26 15:05:21,406 - INFO - Waiting 245 seconds before next account...
+2025-11-26 15:38:02,691 - INFO - 
+Progress: 76/100 - @yvick
+2025-11-26 15:38:02,692 - INFO - Scraping: @yvick
+2025-11-26 15:38:02,694 - ERROR - Error scraping @yvick: Page.goto: Target page, context or browser has been closed
+2025-11-26 15:38:02,694 - INFO - Waiting 247 seconds before next account...
+2025-11-26 15:42:09,706 - INFO - 
+Progress: 77/100 - @belajuliana_
+2025-11-26 15:42:09,706 - INFO - Scraping: @belajuliana_
+2025-11-26 15:42:09,708 - ERROR - Error scraping @belajuliana_: Page.goto: Target page, context or browser has been closed
+2025-11-26 15:42:09,708 - INFO - Waiting 249 seconds before next account...
+2025-11-26 15:46:18,717 - INFO - 
+Progress: 78/100 - @just.another.cook
+2025-11-26 15:46:18,718 - INFO - Scraping: @just.another.cook
+2025-11-26 15:46:18,720 - ERROR - Error scraping @just.another.cook: Page.goto: Target page, context or browser has been closed
+2025-11-26 15:46:18,720 - INFO - Waiting 251 seconds before next account...
+2025-11-26 15:50:29,721 - INFO - 
+Progress: 79/100 - @soukeina_guenaoui_blog
+2025-11-26 15:50:29,722 - INFO - Scraping: @soukeina_guenaoui_blog
+2025-11-26 15:50:29,725 - ERROR - Error scraping @soukeina_guenaoui_blog: Page.goto: Target page, context or browser has been closed
+2025-11-26 15:50:29,726 - INFO - Waiting 253 seconds before next account...
+2025-11-26 15:54:42,740 - INFO - 
+Progress: 80/100 - @malekmarouane
+2025-11-26 15:54:42,741 - INFO - Scraping: @malekmarouane
+2025-11-26 15:54:42,742 - ERROR - Error scraping @malekmarouane: Page.goto: Target page, context or browser has been closed
+2025-11-26 15:54:42,743 - INFO -  CSV saved: scraped_data\csv\socialblade_progress_80_20251126_155442.csv (51 records)
+2025-11-26 15:54:42,744 - INFO - Progress saved: socialblade_progress_80_20251126_155442.csv
+2025-11-26 15:54:42,744 - INFO - Waiting 255 seconds before next account...
+2025-11-26 15:58:57,752 - INFO - 
+Progress: 81/100 - @mhammed_kilito
+2025-11-26 15:58:57,752 - INFO - Scraping: @mhammed_kilito
+2025-11-26 15:58:57,755 - ERROR - Error scraping @mhammed_kilito: Page.goto: Target page, context or browser has been closed
+2025-11-26 15:58:57,755 - INFO - Waiting 257 seconds before next account...
+2025-11-26 16:03:14,770 - INFO - 
+Progress: 82/100 - @soufianejarraf
+2025-11-26 16:03:14,770 - INFO - Scraping: @soufianejarraf
+2025-11-26 16:03:14,771 - ERROR - Error scraping @soufianejarraf: Page.goto: Target page, context or browser has been closed
+2025-11-26 16:03:14,771 - INFO - Waiting 259 seconds before next account...
+2025-11-26 16:07:33,786 - INFO - 
+Progress: 83/100 - @sofiaguedira
+2025-11-26 16:07:33,787 - INFO - Scraping: @sofiaguedira
+2025-11-26 16:07:33,789 - ERROR - Error scraping @sofiaguedira: Page.goto: Target page, context or browser has been closed
+2025-11-26 16:07:33,789 - INFO - Waiting 261 seconds before next account...
+2025-11-26 16:11:54,795 - INFO - 
+Progress: 84/100 - @sarahsrn
+2025-11-26 16:11:54,796 - INFO - Scraping: @sarahsrn
+2025-11-26 16:11:54,798 - ERROR - Error scraping @sarahsrn: Page.goto: Target page, context or browser has been closed
+2025-11-26 16:11:54,798 - INFO - Waiting 263 seconds before next account...
+2025-11-26 16:16:17,799 - INFO - 
+Progress: 85/100 - @chaimaa.fs
+2025-11-26 16:16:17,800 - INFO - Scraping: @chaimaa.fs
+2025-11-26 16:16:17,801 - ERROR - Error scraping @chaimaa.fs: Page.goto: Target page, context or browser has been closed
+2025-11-26 16:16:17,802 - INFO -  CSV saved: scraped_data\csv\socialblade_progress_85_20251126_161617.csv (51 records)
+2025-11-26 16:16:17,803 - INFO - Progress saved: socialblade_progress_85_20251126_161617.csv
+2025-11-26 16:16:17,803 - INFO - Waiting 265 seconds before next account...
+2025-11-26 16:20:42,811 - INFO - 
+Progress: 86/100 - @yasmine_ahenjir
+2025-11-26 16:20:42,811 - INFO - Scraping: @yasmine_ahenjir
+2025-11-26 16:20:42,813 - ERROR - Error scraping @yasmine_ahenjir: Page.goto: Target page, context or browser has been closed
+2025-11-26 16:20:42,813 - INFO - Waiting 267 seconds before next account...
+2025-11-26 16:25:09,828 - INFO - 
+Progress: 87/100 - @mr_blueicy
+2025-11-26 16:25:09,828 - INFO - Scraping: @mr_blueicy
+2025-11-26 16:25:09,830 - ERROR - Error scraping @mr_blueicy: Page.goto: Target page, context or browser has been closed
+2025-11-26 16:25:09,830 - INFO - Waiting 269 seconds before next account...
+2025-11-26 16:29:38,834 - INFO - 
+Progress: 88/100 - @step___h
+2025-11-26 16:29:38,835 - INFO - Scraping: @step___h
+2025-11-26 16:29:38,836 - ERROR - Error scraping @step___h: Page.goto: Target page, context or browser has been closed
+2025-11-26 16:29:38,837 - INFO - Waiting 271 seconds before next account...
+2025-11-26 16:34:09,842 - INFO - 
+Progress: 89/100 - @skyseeef
+2025-11-26 16:34:09,842 - INFO - Scraping: @skyseeef
+2025-11-26 16:34:09,844 - ERROR - Error scraping @skyseeef: Page.goto: Target page, context or browser has been closed
+2025-11-26 16:34:09,844 - INFO - Waiting 273 seconds before next account...
+2025-11-26 16:38:42,845 - INFO - 
+Progress: 90/100 - @thehorizonsurfandyoga
+2025-11-26 16:38:42,845 - INFO - Scraping: @thehorizonsurfandyoga
+2025-11-26 16:38:42,847 - ERROR - Error scraping @thehorizonsurfandyoga: Page.goto: Target page, context or browser has been closed
+2025-11-26 16:38:42,848 - INFO -  CSV saved: scraped_data\csv\socialblade_progress_90_20251126_163842.csv (51 records)
+2025-11-26 16:38:42,848 - INFO - Progress saved: socialblade_progress_90_20251126_163842.csv
+2025-11-26 16:38:42,848 - INFO - Waiting 275 seconds before next account...
+2025-11-26 16:43:17,851 - INFO - 
+Progress: 91/100 - @amermricha
+2025-11-26 16:43:17,851 - INFO - Scraping: @amermricha
+2025-11-26 16:43:17,853 - ERROR - Error scraping @amermricha: Page.goto: Target page, context or browser has been closed
+2025-11-26 16:43:17,853 - INFO - Waiting 277 seconds before next account...
+2025-11-26 16:47:54,858 - INFO - 
+Progress: 92/100 - @gaga_soukaina
+2025-11-26 16:47:54,858 - INFO - Scraping: @gaga_soukaina
+2025-11-26 16:47:54,860 - ERROR - Error scraping @gaga_soukaina: Page.goto: Target page, context or browser has been closed
+2025-11-26 16:47:54,860 - INFO - Waiting 279 seconds before next account...
+2025-11-26 16:52:33,863 - INFO - 
+Progress: 93/100 - @zineb.bouzoubaa
+2025-11-26 16:52:33,864 - INFO - Scraping: @zineb.bouzoubaa
+2025-11-26 16:52:33,866 - ERROR - Error scraping @zineb.bouzoubaa: Page.goto: Target page, context or browser has been closed
+2025-11-26 16:52:33,866 - INFO - Waiting 281 seconds before next account...
+2025-11-26 16:57:14,880 - INFO - 
+Progress: 94/100 - @habzifadwa
+2025-11-26 16:57:14,881 - INFO - Scraping: @habzifadwa
+2025-11-26 16:57:14,883 - ERROR - Error scraping @habzifadwa: Page.goto: Target page, context or browser has been closed
+2025-11-26 16:57:14,883 - INFO - Waiting 283 seconds before next account...
+2025-11-26 17:01:57,888 - INFO - 
+Progress: 95/100 - @omayma_essahli
+2025-11-26 17:01:57,888 - INFO - Scraping: @omayma_essahli
+2025-11-26 17:01:57,890 - ERROR - Error scraping @omayma_essahli: Page.goto: Target page, context or browser has been closed
+2025-11-26 17:01:57,892 - INFO -  CSV saved: scraped_data\csv\socialblade_progress_95_20251126_170157.csv (51 records)
+2025-11-26 17:01:57,892 - INFO - Progress saved: socialblade_progress_95_20251126_170157.csv
+2025-11-26 17:01:57,892 - INFO - Waiting 285 seconds before next account...
+2025-11-26 17:06:42,898 - INFO - 
+Progress: 96/100 - @botatosalah
+2025-11-26 17:06:42,898 - INFO - Scraping: @botatosalah
+2025-11-26 17:06:42,899 - ERROR - Error scraping @botatosalah: Page.goto: Target page, context or browser has been closed
+2025-11-26 17:06:42,899 - INFO - Waiting 287 seconds before next account...
+2025-11-26 17:11:29,909 - INFO - 
+Progress: 97/100 - @hindarouam
+2025-11-26 17:11:29,909 - INFO - Scraping: @hindarouam
+2025-11-26 17:11:29,911 - ERROR - Error scraping @hindarouam: Page.goto: Target page, context or browser has been closed
+2025-11-26 17:11:29,911 - INFO - Waiting 289 seconds before next account...
+2025-11-26 17:16:18,915 - INFO - 
+Progress: 98/100 - @whoskenza
+2025-11-26 17:16:18,915 - INFO - Scraping: @whoskenza
+2025-11-26 17:16:18,917 - ERROR - Error scraping @whoskenza: Page.goto: Target page, context or browser has been closed
+2025-11-26 17:16:18,917 - INFO - Waiting 291 seconds before next account...
+2025-11-26 17:21:09,932 - INFO - 
+Progress: 99/100 - @jaylann_official
+2025-11-26 17:21:09,932 - INFO - Scraping: @jaylann_official
+2025-11-26 17:21:09,934 - ERROR - Error scraping @jaylann_official: Page.goto: Target page, context or browser has been closed
+2025-11-26 17:21:09,934 - INFO - Waiting 293 seconds before next account...
+2025-11-26 17:26:02,946 - INFO - 
+Progress: 100/100 - @laagoubi
+2025-11-26 17:26:02,946 - INFO - Scraping: @laagoubi
+2025-11-26 17:26:02,949 - ERROR - Error scraping @laagoubi: Page.goto: Target page, context or browser has been closed
+2025-11-26 17:26:02,950 - INFO -  CSV saved: scraped_data\csv\socialblade_progress_100_20251126_172602.csv (51 records)
+2025-11-26 17:26:02,950 - INFO - Progress saved: socialblade_progress_100_20251126_172602.csv
+2025-11-26 17:26:02,950 - INFO - 
+=======================================================
+2025-11-26 17:26:02,951 - INFO - SCRAPING RESULTS SUMMARY
+2025-11-26 17:26:02,951 - INFO - =======================================================
+2025-11-26 17:26:02,951 - INFO - Successfully scraped: 51 accounts
+2025-11-26 17:26:02,951 - INFO - Not found on Social Blade: 24 accounts
+2025-11-26 17:26:02,951 - INFO - Failed (connection errors): 25 accounts
+2025-11-26 17:26:02,951 - INFO - =======================================================
+2025-11-26 17:26:02,952 - INFO -  CSV saved: scraped_data\csv\socialblade_final_20251126_172602.csv (75 records)
+2025-11-26 17:26:02,956 - INFO -  JSON saved: scraped_data\json\socialblade_final_20251126_172602.json (75 records)
+2025-11-26 17:26:02,958 - INFO - Data saved to: scraped_data\csv\socialblade_final_20251126_172602.csv
+2025-11-26 17:26:02,958 - INFO - Backup saved to: scraped_data\json\socialblade_final_20251126_172602.json
+2025-11-26 17:26:02,958 - INFO - 
+TO IMPORT INTO DJANGO:
+2025-11-26 17:26:02,958 - INFO - python manage.py import_social_blade scraped_data\csv\socialblade_final_20251126_172602.csv --platform instagram --update-existing
+2025-11-26 17:26:02,959 - INFO - 
+This CSV includes:
+2025-11-26 17:26:02,959 - INFO - - 51 accounts with Social Blade data
+2025-11-26 17:26:02,959 - INFO - - 24 accounts NOT FOUND (with 0/null values)
+2025-11-26 17:26:02,959 - INFO - Both types will prevent re-scraping for 7 days after import
+2025-11-26 17:26:02,960 - INFO -  Failed usernames saved: scraped_data\failed_20251126_172602.txt (25 usernames)
+2025-11-26 17:26:02,960 - INFO - Failed usernames: scraped_data\failed_20251126_172602.txt
+2025-11-26 17:26:02,960 - INFO - These 25 accounts had connection/server errors
+2025-11-26 17:26:02,960 - INFO - 
+IMPORTANT: After importing the CSV, both successful and NOT FOUND
+2025-11-26 17:26:02,960 - INFO - accounts will be skipped for 7 days to prevent endless re-scraping.
+2025-11-26 17:26:02,978 - INFO - 
+Scraping complete
+2025-11-26 17:26:02,978 - INFO - Chrome will remain open - you can close it manually when ready
