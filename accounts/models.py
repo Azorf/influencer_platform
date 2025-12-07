@@ -9,6 +9,7 @@ class CustomUser(AbstractUser):
     USER_TYPES = (
         ('agency', _('Agency')),
         ('influencer', _('Influencer')),
+        ('brand', _('Brand')),
         ('admin', _('Admin')),
     )
     
