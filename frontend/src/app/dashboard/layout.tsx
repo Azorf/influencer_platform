@@ -62,13 +62,13 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const router = useRouter();
 
-  // Check authentication
-  useEffect(() => {
-    const token = getAccessToken();
-    if (!token) {
-      router.push('/login');
-    }
-  }, [router]);
+  // // Check authentication
+  // useEffect(() => {
+  //   const token = getAccessToken();
+  //   if (!token) {
+  //     router.push('/login');
+  //   }
+  // }, [router]);
 
   const handleLogout = () => {
     clearTokens();
