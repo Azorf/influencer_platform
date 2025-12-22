@@ -4,33 +4,32 @@ from . import views
 app_name = 'campaigns'
 
 urlpatterns = [
-    # Campaign management
-    path('', views.campaign_list_view, name='campaign_list'),
-    path('create/', views.campaign_create_view, name='campaign_create'),
-    path('<int:pk>/', views.campaign_detail_view, name='campaign_detail'),
-    path('<int:pk>/edit/', views.campaign_edit_view, name='campaign_edit'),
-    path('<int:pk>/delete/', views.campaign_delete_view, name='campaign_delete'),
+    # ===========================================
+    # REST API ENDPOINTS (for Next.js frontend)
+    # ===========================================
+    
+    # Campaign CRUD
+    path('', views.CampaignListAPIView.as_view(), name='api_campaign_list'),
+    path('create/', views.api_create_campaign, name='api_create_campaign'),
+    path('<int:pk>/', views.CampaignDetailAPIView.as_view(), name='api_campaign_detail'),
+    path('<int:pk>/update/', views.api_update_campaign, name='api_update_campaign'),
+    path('<int:pk>/delete/', views.api_delete_campaign, name='api_delete_campaign'),
     
     # Collaborations
-    path('<int:pk>/collaborations/', views.collaboration_list_view, name='collaboration_list'),
-    path('<int:pk>/invite-influencer/', views.invite_influencer_view, name='invite_influencer'),
-    path('collaboration/<int:pk>/', views.collaboration_detail_view, name='collaboration_detail'),
-    path('collaboration/<int:pk>/update-status/', views.update_collaboration_status, name='update_collaboration_status'),
+    path('<int:pk>/collaborations/', views.api_collaborations, name='api_collaborations'),
+    path('<int:pk>/invite-influencer/', views.api_invite_influencer, name='api_invite_influencer'),
+    path('<int:campaign_pk>/collaborations/<int:pk>/', views.api_update_collaboration, name='api_update_collaboration'),
+    path('collaboration/<int:pk>/', views.api_collaboration_detail, name='api_collaboration_detail'),
+    path('collaboration/<int:pk>/update-status/', views.api_update_collaboration_status, name='api_update_collaboration_status'),
     
-    # Content management
-    path('collaboration/<int:pk>/content/', views.content_list_view, name='content_list'),
-    path('content/<int:pk>/review/', views.content_review_view, name='content_review'),
-    
-    # Manual Performance Tracking
-    path('content/<int:pk>/update-metrics/', views.update_content_metrics, name='update_content_metrics'),
+    # Content
+    path('collaboration/<int:pk>/content/', views.api_content_list, name='api_content_list'),
+    path('collaboration/<int:pk>/content/create/', views.api_create_content, name='api_create_content'),
+    path('<int:campaign_pk>/content/<int:pk>/', views.api_update_content, name='api_update_content'),
+    path('content/<int:pk>/review/', views.api_review_content, name='api_review_content'),
+    path('content/<int:pk>/update-metrics/', views.api_update_content_metrics, name='api_update_content_metrics'),
     
     # Analytics
-    path('<int:pk>/analytics/', views.campaign_analytics_view, name='campaign_analytics'),
-    
-    # API endpoints for AJAX operations
-    path('api/<int:pk>/performance/', views.api_campaign_performance, name='api_campaign_performance'),
-    path('api/content/<int:pk>/metrics/', views.api_update_content_metrics, name='api_update_content_metrics'),
-    path('api/<int:pk>/analytics/', views.api_campaign_analytics, name='api_campaign_analytics'),
-    path('api/content/bulk-update/', views.api_bulk_update_metrics, name='api_bulk_update_metrics'),
-    path('api/<int:pk>/analytics/refresh/', views.api_refresh_campaign_analytics, name='api_refresh_campaign_analytics'),
+    path('<int:pk>/analytics/', views.api_campaign_analytics, name='api_campaign_analytics'),
+    path('<int:pk>/analytics/refresh/', views.api_refresh_analytics, name='api_refresh_analytics'),
 ]

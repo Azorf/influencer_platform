@@ -1,3 +1,7 @@
+# reports/urls.py
+"""
+URL patterns for reports REST API
+"""
 from django.urls import path
 from . import views
 
@@ -5,27 +9,28 @@ app_name = 'reports'
 
 urlpatterns = [
     # Reports
-    path('', views.report_list_view, name='report_list'),
-    path('create/', views.report_create_view, name='report_create'),
-    path('<int:pk>/', views.report_detail_view, name='report_detail'),
-    path('<int:pk>/download/', views.report_download_view, name='report_download'),
-    path('<int:pk>/share/', views.report_share_view, name='report_share'),
+    path('', views.report_list, name='report_list'),
+    path('<int:pk>/', views.report_detail, name='report_detail'),
+    path('<int:pk>/download/', views.report_download, name='report_download'),
+    path('<int:pk>/status/', views.report_status, name='report_status'),
+    path('<int:pk>/regenerate/', views.report_regenerate, name='report_regenerate'),
     
     # Templates
-    path('templates/', views.template_list_view, name='template_list'),
-    path('templates/<int:pk>/', views.template_detail_view, name='template_detail'),
+    path('templates/', views.template_list, name='template_list'),
+    path('templates/<int:pk>/', views.template_detail, name='template_detail'),
     
     # Dashboards
-    path('dashboards/', views.dashboard_list_view, name='dashboard_list'),
-    path('dashboards/create/', views.dashboard_create_view, name='dashboard_create'),
-    path('dashboards/<int:pk>/', views.dashboard_view, name='dashboard_view'),
-    path('dashboards/<int:pk>/edit/', views.dashboard_edit_view, name='dashboard_edit'),
+    path('dashboards/', views.dashboard_list, name='dashboard_list'),
+    path('dashboards/<int:pk>/', views.dashboard_detail, name='dashboard_detail'),
     
-    # Analytics snapshots
-    path('snapshots/', views.snapshot_list_view, name='snapshot_list'),
-    path('snapshots/create/', views.create_snapshot_view, name='create_snapshot'),
+    # Analytics Snapshots
+    path('snapshots/', views.snapshot_list, name='snapshot_list'),
     
     # Subscriptions
-    path('subscriptions/', views.subscription_list_view, name='subscription_list'),
-    path('subscriptions/create/', views.subscription_create_view, name='subscription_create'),
+    path('subscriptions/', views.subscription_list, name='subscription_list'),
+    path('subscriptions/<int:pk>/', views.subscription_detail, name='subscription_detail'),
+    path('subscriptions/<int:pk>/toggle/', views.subscription_toggle, name='subscription_toggle'),
+    
+    # Options (for forms)
+    path('options/', views.report_options, name='report_options'),
 ]

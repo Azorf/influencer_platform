@@ -4,27 +4,31 @@ from . import views
 app_name = 'agencies'
 
 urlpatterns = [
-    # Agency management
-    path('setup/', views.agency_setup_view, name='agency_setup'),
-    path('<int:pk>/', views.agency_detail_view, name='agency_detail'),
-    path('<int:pk>/edit/', views.agency_edit_view, name='agency_edit'),
-    path('list/', views.agency_list_view, name='agency_list'),
+    # ===========================================
+    # REST API ENDPOINTS (for Next.js frontend)
+    # ===========================================
     
-    # Team management (enhanced)
-    path('<int:pk>/team/', views.team_manage_view, name='team_manage'),
-    path('<int:pk>/team/add/', views.team_add_view, name='team_add'),  # Existing user
-    path('<int:pk>/team/invite/', views.team_invite_view, name='team_invite'),  # New invitation
-    path('<int:pk>/team/remove/<int:member_pk>/', views.team_remove_view, name='team_remove'),
+    # Agency CRUD
+    path('', views.AgencyListAPIView.as_view(), name='api_agency_list'),
+    path('me/', views.api_current_agency, name='api_current_agency'),
+    path('create/', views.api_create_agency, name='api_create_agency'),
+    path('<int:pk>/', views.AgencyDetailAPIView.as_view(), name='api_agency_detail'),
+    path('<int:pk>/update/', views.api_update_agency, name='api_update_agency'),
     
-    # Team invitation system
-    path('invitations/accept/<uuid:token>/', views.accept_invitation_view, name='accept_invitation'),
-    path('invitations/cancel/<int:invitation_pk>/', views.cancel_invitation_view, name='cancel_invitation'),
+    # Team management
+    path('<int:pk>/team/', views.api_team_members, name='api_team_members'),
+    path('<int:pk>/team/add/', views.api_add_team_member, name='api_add_team_member'),
+    path('<int:pk>/team/<int:member_pk>/', views.api_update_team_member, name='api_update_team_member'),
+    path('<int:pk>/team/<int:member_pk>/remove/', views.api_remove_team_member, name='api_remove_team_member'),
     
-    # Subscription management
-    path('<int:pk>/subscription/', views.subscription_view, name='subscription'),
+    # Invitations
+    path('<int:pk>/invitations/', views.api_list_invitations, name='api_list_invitations'),
+    path('<int:pk>/invitations/create/', views.api_create_invitation, name='api_create_invitation'),
+    path('<int:pk>/invitations/<int:invitation_pk>/resend/', views.api_resend_invitation, name='api_resend_invitation'),
+    path('<int:pk>/invitations/<int:invitation_pk>/cancel/', views.api_cancel_invitation, name='api_cancel_invitation'),
+    path('invitations/accept/<uuid:token>/', views.api_accept_invitation, name='api_accept_invitation'),
     
-    # API endpoints for AJAX operations
-    path('api/<int:pk>/team/remove/', views.api_remove_team_member, name='api_remove_team_member'),
-    path('api/<int:pk>/invitations/', views.api_list_invitations, name='api_list_invitations'),
-    path('api/invitations/<int:invitation_pk>/resend/', views.api_resend_invitation, name='api_resend_invitation'),
+    # Subscription
+    path('<int:pk>/subscription/', views.api_subscription, name='api_subscription'),
+    path('<int:pk>/subscription/update/', views.api_update_subscription, name='api_update_subscription'),
 ]

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # PostgreSQL Database
   db:
@@ -41,7 +39,7 @@ services:
     networks:
       - influencer_network
 
-  # Django Web Application
+  # Django Web Application (Backend API)
   web:
     build:
       context: .
@@ -61,6 +59,10 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      # CORS settings for frontend
+      - CORS_ALLOWED_ORIGINS=http://localhost:3000,http://frontend:3000,http://localhost,http://nginx
+      # Frontend URL for OAuth redirects
+      - FRONTEND_URL=http://localhost:3000
     depends_on:
       db:
         condition: service_healthy
@@ -79,6 +81,36 @@ services:
              python manage.py migrate &&
              python manage.py collectstatic --noinput &&
              python manage.py runserver 0.0.0.0:8000"
+
+  # Next.js Frontend Application
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: influencer_frontend
+    restart: unless-stopped
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_TELEMETRY_DISABLED=1
+    depends_on:
+      web:
+        condition: service_healthy
+    networks:
+      - influencer_network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    command: npm run dev
 
   # Celery Worker (for background scraping tasks)
   celery:
@@ -140,7 +172,7 @@ services:
              /wait-for-it.sh redis:6379 --
              celery -A influencer_platform beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler"
 
-  # Nginx (Development - Optional)
+  # Nginx (Reverse Proxy)
   nginx:
     build:
       context: ./nginx
@@ -151,9 +183,11 @@ services:
       - static_volume:/app/staticfiles:ro
       - media_volume:/app/media:ro
     ports:
-      - "80:8080"  # Map host port 80 to container port 8080
+      - "80:8080"
     depends_on:
       web:
+        condition: service_healthy
+      frontend:
         condition: service_healthy
     networks:
       - influencer_network

@@ -1,630 +1,587 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth import get_user_model
-from django.contrib import messages
-from django.utils.translation import gettext as _
-from django.http import JsonResponse
-from django.views.decorators.http import require_http_methods
-from django.views.decorators.csrf import csrf_exempt
-from django.core.paginator import Paginator
-from django.core.mail import send_mail
-from django.urls import reverse
-from django.utils import timezone
-from django.db import models
-import json
-import uuid
+"""
+REST API Views for Agencies App
+These views return JSON responses for the Next.js frontend
+"""
 
-from .models import Agency, AgencyTeamMember, AgencySubscription, TeamInvitation
-from .forms import AgencyForm, AgencyTeamMemberForm
+from rest_framework import generics, status
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
+from django.shortcuts import get_object_or_404
+from django.db.models import Q
 
-User = get_user_model()
+# Flexible imports to handle different model names
+from .models import Agency
 
-
-def require_agency_role(allowed_roles):
-    """Decorator to require specific agency roles"""
-    def decorator(view_func):
-        def _wrapped_view(request, *args, **kwargs):
-            # Get agency from URL parameter or user
-            agency_pk = kwargs.get('pk') 
-            if agency_pk:
-                agency = get_object_or_404(Agency, pk=agency_pk)
-            else:
-                try:
-                    agency = Agency.objects.get(user=request.user)
-                except Agency.DoesNotExist:
-                    messages.error(request, _('No agency found for your account.'))
-                    return redirect('accounts:dashboard')
-            
-            # Check if user is owner
-            if request.user == agency.user:
-                return view_func(request, *args, **kwargs)
-            
-            # Check if user is team member with required role
-            try:
-                team_member = AgencyTeamMember.objects.get(
-                    agency=agency, 
-                    user=request.user, 
-                    is_active=True
-                )
-                if team_member.role in allowed_roles:
-                    return view_func(request, *args, **kwargs)
-            except AgencyTeamMember.DoesNotExist:
-                pass
-            
-            messages.error(request, _('You do not have permission to perform this action.'))
-            return redirect('agencies:agency_detail', pk=agency.pk)
-        
-        return _wrapped_view
-    return decorator
-
-
-@login_required
-def agency_setup_view(request):
-    """Agency setup view for new users - enhanced with trial messaging"""
-    if request.user.user_type != 'agency':
-        messages.error(request, _('Only agency users can create agencies.'))
-        return redirect('accounts:dashboard')
-    
+# Try different possible model names for TeamMember
+try:
+    from .models import TeamMember
+except ImportError:
     try:
-        agency = Agency.objects.get(user=request.user)
-        messages.info(request, _('Your agency is already set up!'))
-        return redirect('agencies:agency_detail', pk=agency.pk)
-    except Agency.DoesNotExist:
-        pass
-    
-    if request.method == 'POST':
-        form = AgencyForm(request.POST, request.FILES)
-        if form.is_valid():
-            agency = form.save(commit=False)
-            agency.user = request.user
-            agency.email = request.user.email
-            agency.save()
-            
-            # Create owner team membership
-            AgencyTeamMember.objects.get_or_create(
-                agency=agency,
-                user=request.user,
-                defaults={'role': 'owner'}
-            )
-            
-            # Create 14-day trial if not exists
-            subscription, created = AgencySubscription.objects.get_or_create(
-                agency=agency,
-                defaults={
-                    'plan_type': 'basic',
-                    'status': 'trial',
-                    'start_date': timezone.now(),
-                    'end_date': timezone.now() + timezone.timedelta(days=365),
-                    'trial_end_date': timezone.now() + timezone.timedelta(days=14),
-                    'max_campaigns': 2,
-                    'max_influencer_searches': 50,
-                    'max_team_members': 999
-                }
-            )
-            
-            messages.success(request, _(
-                'Agency created successfully! You have a 14-day free trial with unlimited team members.'
-            ))
-            return redirect('agencies:agency_detail', pk=agency.pk)
-    else:
-        form = AgencyForm()
-    
-    return render(request, 'agencies/setup.html', {
-        'form': form,
-        'trial_days': 14,
-        'trial_features': [
-            _('Unlimited team members'),
-            _('Up to 2 campaigns'),
-            _('50 influencer searches'),
-            _('Basic analytics'),
-            _('Email support')
-        ]
-    })
+        from .models import AgencyTeamMember as TeamMember
+    except ImportError:
+        TeamMember = None
 
+# Try different possible model names for TeamInvitation
+try:
+    from .models import TeamInvitation
+except ImportError:
+    TeamInvitation = None
 
-@login_required
-@require_agency_role(['owner', 'manager'])
-def agency_detail_view(request, pk):
-    """Agency detail view with trial status"""
-    agency = get_object_or_404(Agency, pk=pk)
-    team_members = agency.team_members.filter(is_active=True).select_related('user')
-    subscription = getattr(agency, 'subscription', None)
-    
-    # Check trial status
-    trial_days_left = None
-    if subscription and subscription.status == 'trial' and subscription.trial_end_date:
-        trial_days_left = (subscription.trial_end_date - timezone.now()).days
-    
-    context = {
-        'agency': agency,
-        'team_members': team_members,
-        'subscription': subscription,
-        'trial_days_left': trial_days_left,
-        'is_owner': request.user == agency.user,
-        'user_role': get_user_role(request.user, agency),
-    }
-    
-    return render(request, 'agencies/detail.html', context)
-
-
-@login_required
-@require_agency_role(['owner'])
-def agency_edit_view(request, pk):
-    """Edit agency information"""
-    agency = get_object_or_404(Agency, pk=pk)
-    
-    if request.method == 'POST':
-        form = AgencyForm(request.POST, request.FILES, instance=agency)
-        if form.is_valid():
-            form.save()
-            messages.success(request, _('Agency information updated successfully!'))
-            return redirect('agencies:agency_detail', pk=agency.pk)
-    else:
-        form = AgencyForm(instance=agency)
-    
-    context = {
-        'form': form,
-        'agency': agency,
-    }
-    
-    return render(request, 'agencies/edit.html', context)
-
-
-@login_required
-def agency_list_view(request):
-    """List all agencies (for admin or public directory)"""
-    agencies = Agency.objects.filter(is_verified=True).order_by('name')
-    
-    # Search functionality
-    search_query = request.GET.get('search')
-    if search_query:
-        agencies = agencies.filter(
-            models.Q(name__icontains=search_query) |
-            models.Q(description__icontains=search_query) |
-            models.Q(specialties__icontains=search_query)
-        )
-    
-    # Pagination
-    paginator = Paginator(agencies, 12)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    
-    context = {
-        'page_obj': page_obj,
-        'search_query': search_query,
-    }
-    
-    return render(request, 'agencies/list.html', context)
-
-
-def get_user_role(user, agency):
-    """Get user's role in agency"""
-    if user == agency.user:
-        return 'owner'
+# Try different possible model names for Subscription
+try:
+    from .models import Subscription
+except ImportError:
     try:
-        team_member = AgencyTeamMember.objects.get(agency=agency, user=user, is_active=True)
-        return team_member.role
-    except AgencyTeamMember.DoesNotExist:
-        return None
+        from .models import AgencySubscription as Subscription
+    except ImportError:
+        Subscription = None
+
+from .serializers import (
+    AgencySerializer,
+    AgencyDetailSerializer,
+    AgencyCreateUpdateSerializer,
+    TeamMemberSerializer,
+    TeamInvitationSerializer,
+    SubscriptionSerializer,
+)
 
 
-@login_required
-@require_agency_role(['owner', 'manager'])
-def team_add_view(request, pk):
-    """Add existing user to team"""
-    agency = get_object_or_404(Agency, pk=pk)
-    
-    if request.method == 'POST':
-        form = AgencyTeamMemberForm(request.POST)
-        if form.is_valid():
-            team_member = form.save(commit=False)
-            team_member.agency = agency
-            
-            # Check if user is already a member
-            existing_member = AgencyTeamMember.objects.filter(
-                agency=agency, 
-                user=team_member.user
-            ).first()
-            
-            if existing_member:
-                if existing_member.is_active:
-                    messages.error(request, _('This user is already an active team member.'))
-                else:
-                    # Reactivate existing member
-                    existing_member.role = team_member.role
-                    existing_member.is_active = True
-                    existing_member.save()
-                    messages.success(request, _('Team member reactivated successfully!'))
-            else:
-                team_member.save()
-                messages.success(request, _('Team member added successfully!'))
-            
-            return redirect('agencies:team_manage', pk=agency.pk)
-    else:
-        form = AgencyTeamMemberForm()
-    
-    context = {
-        'form': form,
-        'agency': agency,
-    }
-    
-    return render(request, 'agencies/team_add.html', context)
+class AgencyPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 
 
-@login_required
-@require_agency_role(['owner', 'manager'])
-def team_remove_view(request, pk, member_pk):
-    """Remove team member"""
-    agency = get_object_or_404(Agency, pk=pk)
-    team_member = get_object_or_404(AgencyTeamMember, pk=member_pk, agency=agency)
-    
-    # Cannot remove the owner
-    if team_member.user == agency.user:
-        messages.error(request, _('Cannot remove the agency owner.'))
-        return redirect('agencies:team_manage', pk=agency.pk)
-    
-    # Only owner can remove managers
-    if team_member.role == 'manager' and request.user != agency.user:
-        messages.error(request, _('Only the agency owner can remove managers.'))
-        return redirect('agencies:team_manage', pk=agency.pk)
-    
-    if request.method == 'POST':
-        team_member.is_active = False
-        team_member.save()
-        messages.success(request, _('Team member removed successfully.'))
-        return redirect('agencies:team_manage', pk=agency.pk)
-    
-    context = {
-        'agency': agency,
-        'team_member': team_member,
-    }
-    
-    return render(request, 'agencies/team_remove_confirm.html', context)
+# ===========================================
+# AGENCY VIEWS
+# ===========================================
 
-
-@login_required
-@require_agency_role(['owner'])
-def team_invite_view(request, pk):
-    """Invite team members via email"""
-    agency = get_object_or_404(Agency, pk=pk)
-    
-    if request.method == 'POST':
-        email = request.POST.get('email')
-        role = request.POST.get('role')
-        message = request.POST.get('message', '')
-        
-        if not email or not role:
-            messages.error(request, _('Email and role are required.'))
-            return redirect('agencies:team_invite', pk=agency.pk)
-        
-        # Check if user already exists
-        try:
-            existing_user = User.objects.get(email=email)
-            # Check if already a team member
-            if AgencyTeamMember.objects.filter(agency=agency, user=existing_user, is_active=True).exists():
-                messages.error(request, _('This user is already a member of your agency.'))
-                return redirect('agencies:team_invite', pk=agency.pk)
-        except User.DoesNotExist:
-            existing_user = None
-        
-        # Check for existing pending invitation
-        existing_invitation = TeamInvitation.objects.filter(
-            agency=agency,
-            email=email,
-            status='pending'
-        ).first()
-        
-        if existing_invitation:
-            messages.error(request, _('There is already a pending invitation for this email address.'))
-            return redirect('agencies:team_invite', pk=agency.pk)
-        
-        # Create invitation
-        invitation = TeamInvitation.objects.create(
-            agency=agency,
-            email=email,
-            role=role,
-            invited_by=request.user,
-            message=message
-        )
-        
-        # Send invitation email
-        send_invitation_email(invitation, request)
-        
-        messages.success(request, _(f'Invitation sent to {email}!'))
-        return redirect('agencies:team_manage', pk=agency.pk)
-    
-    roles = [
-        ('manager', _('Manager')),
-        ('account_manager', _('Account Manager')),
-        ('strategist', _('Strategist')),
-        ('creative', _('Creative')),
-        ('analyst', _('Analyst')),
-    ]
-    
-    return render(request, 'agencies/team_invite.html', {
-        'agency': agency,
-        'roles': roles
-    })
-
-
-@login_required
-@require_agency_role(['owner'])
-def cancel_invitation_view(request, pk, invitation_pk):
-    """Cancel pending team invitation"""
-    agency = get_object_or_404(Agency, pk=pk)
-    invitation = get_object_or_404(TeamInvitation, pk=invitation_pk, agency=agency)
-    
-    if request.method == 'POST':
-        invitation.status = 'cancelled'
-        invitation.save()
-        messages.success(request, _('Invitation cancelled successfully.'))
-        return redirect('agencies:team_manage', pk=agency.pk)
-    
-    context = {
-        'agency': agency,
-        'invitation': invitation,
-    }
-    
-    return render(request, 'agencies/cancel_invitation_confirm.html', context)
-
-
-def send_invitation_email(invitation, request):
-    """Send team invitation email"""
-    invite_url = request.build_absolute_uri(
-        reverse('agencies:accept_invitation', kwargs={'token': invitation.token})
-    )
-    
-    subject = f"Invitation to join {invitation.agency.name}"
-    message = f"""
-    You've been invited to join {invitation.agency.name} as a {invitation.get_role_display()}.
-    
-    {invitation.message if invitation.message else ''}
-    
-    Click here to accept: {invite_url}
-    
-    This invitation expires in 7 days.
+class AgencyListAPIView(generics.ListAPIView):
     """
+    GET /api/agencies/
+    List all agencies (admin only in production)
+    """
+    serializer_class = AgencySerializer
+    pagination_class = AgencyPagination
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = Agency.objects.filter(is_active=True)
+        
+        # Search
+        search = self.request.query_params.get('search', None)
+        if search:
+            queryset = queryset.filter(
+                Q(name__icontains=search) |
+                Q(description__icontains=search)
+            )
+        
+        return queryset.order_by('-created_at')
+
+
+class AgencyDetailAPIView(generics.RetrieveAPIView):
+    """
+    GET /api/agencies/<id>/
+    Get agency details
+    """
+    serializer_class = AgencyDetailSerializer
+    permission_classes = [IsAuthenticated]
+    lookup_field = 'pk'
+
+    def get_queryset(self):
+        return Agency.objects.filter(is_active=True)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def api_current_agency(request):
+    """
+    GET /api/agencies/me/
+    Get the current user's agency
+    """
+    try:
+        # Check if user owns an agency
+        agency = Agency.objects.get(owner=request.user)
+        serializer = AgencyDetailSerializer(agency)
+        return Response(serializer.data)
+    except Agency.DoesNotExist:
+        # Check if user is a team member
+        try:
+            team_member = TeamMember.objects.get(user=request.user, is_active=True)
+            serializer = AgencyDetailSerializer(team_member.agency)
+            return Response(serializer.data)
+        except TeamMember.DoesNotExist:
+            return Response(
+                {'error': 'No agency found for this user'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_create_agency(request):
+    """
+    POST /api/agencies/create/
+    Create a new agency
+    """
+    # Check if user already has an agency
+    if Agency.objects.filter(owner=request.user).exists():
+        return Response(
+            {'error': 'You already have an agency'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
     
-    send_mail(
-        subject=subject,
-        message=message,
-        from_email='noreply@yourplatform.com',
-        recipient_list=[invitation.email],
-        fail_silently=False
+    serializer = AgencyCreateUpdateSerializer(data=request.data)
+    if serializer.is_valid():
+        agency = serializer.save(owner=request.user)
+        return Response(
+            AgencyDetailSerializer(agency).data,
+            status=status.HTTP_201_CREATED
+        )
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def api_update_agency(request, pk):
+    """
+    PUT/PATCH /api/agencies/<id>/update/
+    Update agency details
+    """
+    agency = get_object_or_404(Agency, pk=pk)
+    
+    # Check permission
+    if agency.owner != request.user:
+        # Check if user is admin team member
+        is_admin = TeamMember.objects.filter(
+            agency=agency, 
+            user=request.user, 
+            role='admin',
+            is_active=True
+        ).exists()
+        if not is_admin:
+            return Response(
+                {'error': 'Permission denied'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+    
+    serializer = AgencyCreateUpdateSerializer(
+        agency, 
+        data=request.data, 
+        partial=request.method == 'PATCH'
+    )
+    if serializer.is_valid():
+        serializer.save()
+        return Response(AgencyDetailSerializer(agency).data)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# ===========================================
+# TEAM MEMBER VIEWS
+# ===========================================
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def api_team_members(request, pk):
+    """
+    GET /api/agencies/<id>/team/
+    List team members for an agency
+    """
+    agency = get_object_or_404(Agency, pk=pk)
+    
+    # Check permission
+    if not _has_agency_access(request.user, agency):
+        return Response(
+            {'error': 'Permission denied'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    members = TeamMember.objects.filter(agency=agency, is_active=True)
+    serializer = TeamMemberSerializer(members, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_add_team_member(request, pk):
+    """
+    POST /api/agencies/<id>/team/add/
+    Add an existing user to the team
+    """
+    agency = get_object_or_404(Agency, pk=pk)
+    
+    # Check permission (only owner or admin)
+    if not _is_agency_admin(request.user, agency):
+        return Response(
+            {'error': 'Permission denied'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    from accounts.models import CustomUser
+    
+    user_id = request.data.get('user_id')
+    email = request.data.get('email')
+    role = request.data.get('role', 'member')
+    
+    # Find user
+    try:
+        if user_id:
+            user = CustomUser.objects.get(pk=user_id)
+        elif email:
+            user = CustomUser.objects.get(email=email)
+        else:
+            return Response(
+                {'error': 'user_id or email required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    except CustomUser.DoesNotExist:
+        return Response(
+            {'error': 'User not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    # Check if already a member
+    if TeamMember.objects.filter(agency=agency, user=user).exists():
+        return Response(
+            {'error': 'User is already a team member'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    member = TeamMember.objects.create(
+        agency=agency,
+        user=user,
+        role=role
+    )
+    
+    return Response(
+        TeamMemberSerializer(member).data,
+        status=status.HTTP_201_CREATED
     )
 
 
-def accept_invitation_view(request, token):
-    """Accept team invitation and create account if needed"""
-    try:
-        invitation = TeamInvitation.objects.get(token=token, status='pending')
-    except TeamInvitation.DoesNotExist:
-        messages.error(request, _('Invalid or expired invitation.'))
-        return redirect('accounts:login')
-    
-    if invitation.is_expired():
-        invitation.status = 'expired'
-        invitation.save()
-        messages.error(request, _('This invitation has expired.'))
-        return redirect('accounts:login')
-    
-    # Check if user exists
-    try:
-        user = User.objects.get(email=invitation.email)
-        if request.user.is_authenticated and request.user != user:
-            messages.error(request, _(
-                'Please log out and sign in with the invited email address.'
-            ))
-            return redirect('accounts:logout')
-        elif not request.user.is_authenticated:
-            messages.info(request, _(
-                'Please sign in with your invited email address to join the agency.'
-            ))
-            # Store invitation token in session
-            request.session['invitation_token'] = str(invitation.token)
-            return redirect('account_login')
-    except User.DoesNotExist:
-        # User doesn't exist, they need to sign up
-        messages.info(request, _(
-            'Please create an account with your invited email address to join the agency.'
-        ))
-        request.session['invitation_token'] = str(invitation.token)
-        return redirect('account_signup')
-    
-    # User is authenticated and matches invitation
-    if request.user.is_authenticated and request.user.email == invitation.email:
-        return complete_invitation(request, invitation)
-    
-    return redirect('account_login')
-
-
-def complete_invitation(request, invitation):
-    """Complete the invitation process"""
-    # Create team membership
-    team_member, created = AgencyTeamMember.objects.get_or_create(
-        agency=invitation.agency,
-        user=request.user,
-        defaults={
-            'role': invitation.role,
-            'is_active': True
-        }
-    )
-    
-    if not created:
-        # User was already a member, reactivate
-        team_member.role = invitation.role
-        team_member.is_active = True
-        team_member.save()
-    
-    # Mark invitation as accepted
-    invitation.status = 'accepted'
-    invitation.accepted_at = timezone.now()
-    invitation.accepted_by = request.user
-    invitation.save()
-    
-    messages.success(request, _(
-        f'Welcome to {invitation.agency.name}! You have been added as a {invitation.get_role_display()}.'
-    ))
-    
-    return redirect('agencies:agency_detail', pk=invitation.agency.pk)
-
-
-@login_required
-@require_agency_role(['owner', 'manager'])
-def team_manage_view(request, pk):
-    """Enhanced team management with invitations"""
+@api_view(['PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def api_update_team_member(request, pk, member_pk):
+    """
+    PUT/PATCH /api/agencies/<id>/team/<member_id>/
+    Update team member role
+    """
     agency = get_object_or_404(Agency, pk=pk)
-    team_members = agency.team_members.filter(is_active=True).select_related('user')
+    member = get_object_or_404(TeamMember, pk=member_pk, agency=agency)
     
-    # Get pending invitations
-    pending_invitations = TeamInvitation.objects.filter(
-        agency=agency, 
-        status='pending'
-    ).order_by('-created_at')
+    # Check permission
+    if not _is_agency_admin(request.user, agency):
+        return Response(
+            {'error': 'Permission denied'},
+            status=status.HTTP_403_FORBIDDEN
+        )
     
-    context = {
-        'agency': agency,
-        'team_members': team_members,
-        'pending_invitations': pending_invitations,
-        'is_owner': request.user == agency.user,
-    }
+    role = request.data.get('role')
+    if role:
+        member.role = role
+        member.save()
     
-    return render(request, 'agencies/team_manage.html', context)
+    return Response(TeamMemberSerializer(member).data)
 
 
-@login_required
-def subscription_view(request, pk):
-    """Enhanced subscription management with trial info"""
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def api_remove_team_member(request, pk, member_pk):
+    """
+    DELETE /api/agencies/<id>/team/<member_id>/
+    Remove team member
+    """
     agency = get_object_or_404(Agency, pk=pk)
+    member = get_object_or_404(TeamMember, pk=member_pk, agency=agency)
     
-    # Check permissions
-    if request.user != agency.user:
-        messages.error(request, _('Only the agency owner can manage subscriptions.'))
-        return redirect('agencies:agency_detail', pk=agency.pk)
+    # Check permission
+    if not _is_agency_admin(request.user, agency):
+        return Response(
+            {'error': 'Permission denied'},
+            status=status.HTTP_403_FORBIDDEN
+        )
     
-    subscription = getattr(agency, 'subscription', None)
+    # Can't remove the owner
+    if member.user == agency.owner:
+        return Response(
+            {'error': 'Cannot remove agency owner'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
     
-    # Calculate trial info
-    trial_info = None
-    if subscription and subscription.status == 'trial':
-        days_left = (subscription.trial_end_date - timezone.now()).days
-        trial_info = {
-            'days_left': max(0, days_left),
-            'expired': days_left <= 0,
-            'campaigns_used': agency.campaigns.count(),
-            'max_campaigns': subscription.max_campaigns,
-        }
+    member.is_active = False
+    member.save()
     
-    context = {
-        'agency': agency,
-        'subscription': subscription,
-        'trial_info': trial_info,
-        'plan_features': {
-            'basic': {
-                'price': 0,  # Free during trial, then basic plan
-                'campaigns': 'Unlimited',
-                'team_members': 'Unlimited',
-                'searches': 'Unlimited',
-                'features': [
-                    'Campaign management',
-                    'Influencer search',
-                    'Basic analytics',
-                    'Email support',
-                    'Team collaboration'
-                ]
-            }
-        }
-    }
-    
-    return render(request, 'agencies/subscription.html', context)
+    return Response({'message': 'Team member removed'})
 
 
-# API Endpoints for AJAX operations
+# ===========================================
+# INVITATION VIEWS
+# ===========================================
 
-@csrf_exempt
-@require_http_methods(["POST"])
-@login_required
-@require_agency_role(['owner', 'manager'])
-def api_remove_team_member(request, pk):
-    """API endpoint to remove team member via AJAX"""
-    try:
-        agency = get_object_or_404(Agency, pk=pk)
-        data = json.loads(request.body)
-        member_id = data.get('member_id')
-        
-        team_member = get_object_or_404(AgencyTeamMember, id=member_id, agency=agency)
-        
-        # Cannot remove the owner
-        if team_member.user == agency.user:
-            return JsonResponse({'success': False, 'error': 'Cannot remove agency owner'})
-        
-        # Only owner can remove managers
-        if team_member.role == 'manager' and request.user != agency.user:
-            return JsonResponse({'success': False, 'error': 'Only owner can remove managers'})
-        
-        team_member.is_active = False
-        team_member.save()
-        
-        return JsonResponse({
-            'success': True,
-            'message': f'{team_member.user.get_full_name() or team_member.user.email} removed successfully'
-        })
-        
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)})
-
-
-@require_http_methods(["GET"])
-@login_required
-@require_agency_role(['owner', 'manager'])
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def api_list_invitations(request, pk):
-    """API endpoint to list pending invitations"""
+    """
+    GET /api/agencies/<id>/invitations/
+    List pending invitations
+    """
     agency = get_object_or_404(Agency, pk=pk)
+    
+    if not _is_agency_admin(request.user, agency):
+        return Response(
+            {'error': 'Permission denied'},
+            status=status.HTTP_403_FORBIDDEN
+        )
     
     invitations = TeamInvitation.objects.filter(
         agency=agency,
         status='pending'
     ).order_by('-created_at')
     
-    data = [{
-        'id': inv.id,
-        'email': inv.email,
-        'role': inv.get_role_display(),
-        'invited_by': inv.invited_by.get_full_name() or inv.invited_by.email,
-        'created_at': inv.created_at.strftime('%Y-%m-%d %H:%M'),
-        'expires_at': inv.expires_at.strftime('%Y-%m-%d %H:%M'),
-        'is_expired': inv.is_expired()
-    } for inv in invitations]
+    serializer = TeamInvitationSerializer(invitations, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_create_invitation(request, pk):
+    """
+    POST /api/agencies/<id>/invitations/
+    Create a new team invitation
+    """
+    agency = get_object_or_404(Agency, pk=pk)
     
-    return JsonResponse({'success': True, 'invitations': data})
+    if not _is_agency_admin(request.user, agency):
+        return Response(
+            {'error': 'Permission denied'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    email = request.data.get('email')
+    role = request.data.get('role', 'member')
+    
+    if not email:
+        return Response(
+            {'error': 'Email is required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    # Check if already invited
+    existing = TeamInvitation.objects.filter(
+        agency=agency,
+        email=email,
+        status='pending'
+    ).first()
+    
+    if existing:
+        return Response(
+            {'error': 'Invitation already sent to this email'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    invitation = TeamInvitation.objects.create(
+        agency=agency,
+        email=email,
+        role=role,
+        invited_by=request.user
+    )
+    
+    # TODO: Send invitation email
+    
+    return Response(
+        TeamInvitationSerializer(invitation).data,
+        status=status.HTTP_201_CREATED
+    )
 
 
-@csrf_exempt
-@require_http_methods(["POST"])
-@login_required
-@require_agency_role(['owner'])
-def api_resend_invitation(request, invitation_pk):
-    """API endpoint to resend invitation email"""
-    try:
-        invitation = get_object_or_404(TeamInvitation, pk=invitation_pk)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_resend_invitation(request, pk, invitation_pk):
+    """
+    POST /api/agencies/<id>/invitations/<invitation_id>/resend/
+    Resend invitation email
+    """
+    agency = get_object_or_404(Agency, pk=pk)
+    invitation = get_object_or_404(TeamInvitation, pk=invitation_pk, agency=agency)
+    
+    if not _is_agency_admin(request.user, agency):
+        return Response(
+            {'error': 'Permission denied'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    if invitation.status != 'pending':
+        return Response(
+            {'error': 'Can only resend pending invitations'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    # TODO: Resend invitation email
+    
+    return Response({'message': 'Invitation resent'})
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def api_cancel_invitation(request, pk, invitation_pk):
+    """
+    DELETE /api/agencies/<id>/invitations/<invitation_id>/
+    Cancel an invitation
+    """
+    agency = get_object_or_404(Agency, pk=pk)
+    invitation = get_object_or_404(TeamInvitation, pk=invitation_pk, agency=agency)
+    
+    if not _is_agency_admin(request.user, agency):
+        return Response(
+            {'error': 'Permission denied'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    invitation.status = 'cancelled'
+    invitation.save()
+    
+    return Response({'message': 'Invitation cancelled'})
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def api_accept_invitation(request, token):
+    """
+    POST /api/agencies/invitations/accept/<token>/
+    Accept an invitation (can be called by unauthenticated user during signup)
+    """
+    invitation = get_object_or_404(TeamInvitation, token=token)
+    
+    if invitation.status != 'pending':
+        return Response(
+            {'error': 'Invitation is no longer valid'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    if invitation.is_expired():
+        return Response(
+            {'error': 'Invitation has expired'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    # If user is authenticated, add them to the team
+    if request.user.is_authenticated:
+        # Check if user email matches invitation
+        if request.user.email != invitation.email:
+            return Response(
+                {'error': 'This invitation was sent to a different email'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
-        # Check permissions
-        if invitation.agency.user != request.user:
-            return JsonResponse({'success': False, 'error': 'Permission denied'})
+        # Create team member
+        member, created = TeamMember.objects.get_or_create(
+            agency=invitation.agency,
+            user=request.user,
+            defaults={'role': invitation.role}
+        )
         
-        if invitation.status != 'pending':
-            return JsonResponse({'success': False, 'error': 'Can only resend pending invitations'})
+        invitation.status = 'accepted'
+        invitation.save()
         
-        if invitation.is_expired():
-            return JsonResponse({'success': False, 'error': 'Invitation has expired'})
-        
-        # Resend email
-        send_invitation_email(invitation, request)
-        
-        return JsonResponse({
-            'success': True,
-            'message': f'Invitation resent to {invitation.email}'
+        return Response({
+            'message': 'Invitation accepted',
+            'agency': AgencySerializer(invitation.agency).data
         })
-        
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)})
+    
+    # Return invitation details for signup flow
+    return Response({
+        'email': invitation.email,
+        'agency_name': invitation.agency.name,
+        'role': invitation.role,
+    })
+
+
+# ===========================================
+# SUBSCRIPTION VIEWS
+# ===========================================
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def api_subscription(request, pk):
+    """
+    GET /api/agencies/<id>/subscription/
+    Get agency subscription details
+    """
+    agency = get_object_or_404(Agency, pk=pk)
+    
+    if not _has_agency_access(request.user, agency):
+        return Response(
+            {'error': 'Permission denied'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    try:
+        subscription = agency.subscription
+        serializer = SubscriptionSerializer(subscription)
+        return Response(serializer.data)
+    except Subscription.DoesNotExist:
+        return Response(
+            {'error': 'No subscription found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_update_subscription(request, pk):
+    """
+    POST /api/agencies/<id>/subscription/update/
+    Update subscription (upgrade/downgrade)
+    """
+    agency = get_object_or_404(Agency, pk=pk)
+    
+    if agency.owner != request.user:
+        return Response(
+            {'error': 'Only agency owner can manage subscription'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    plan = request.data.get('plan')
+    
+    if not plan:
+        return Response(
+            {'error': 'Plan is required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    # TODO: Integrate with Stripe for actual subscription management
+    
+    subscription, created = Subscription.objects.get_or_create(agency=agency)
+    subscription.plan = plan
+    subscription.save()
+    
+    return Response(SubscriptionSerializer(subscription).data)
+
+
+# ===========================================
+# HELPER FUNCTIONS
+# ===========================================
+
+def _has_agency_access(user, agency):
+    """Check if user has any access to agency"""
+    if agency.owner == user:
+        return True
+    return TeamMember.objects.filter(
+        agency=agency,
+        user=user,
+        is_active=True
+    ).exists()
+
+
+def _is_agency_admin(user, agency):
+    """Check if user is owner or admin of agency"""
+    if agency.owner == user:
+        return True
+    return TeamMember.objects.filter(
+        agency=agency,
+        user=user,
+        role__in=['admin', 'owner'],
+        is_active=True
+    ).exists()

@@ -11,13 +11,13 @@ def api_root(request):
         "version": "1.0",
         "endpoints": {
             "admin": "/admin/",
-            "auth": "/api/auth/",
+            "auth": "/accounts/",
+            "accounts": "/api/accounts/",
             "agencies": "/api/agencies/",
             "influencers": "/api/influencers/",
             "campaigns": "/api/campaigns/",
             "payments": "/api/payments/",
             "reports": "/api/reports/",
-            "docs": "/api/docs/"
         }
     })
 
@@ -28,8 +28,16 @@ urlpatterns = [
     # Admin (keep for management)
     path('admin/', admin.site.urls),
     
-    # API endpoints
-    path('api/auth/', include('allauth.urls')),
+    # Django-allauth URLs (NO /api/ prefix - handles OAuth redirects)
+    # This provides:
+    #   /accounts/google/login/          - Initiates Google OAuth
+    #   /accounts/google/login/callback/ - Google redirects back here
+    #   /accounts/login/                 - Default login page
+    #   /accounts/logout/                - Logout
+    #   /accounts/signup/                - Signup
+    path('accounts/', include('allauth.urls')),
+    
+    # REST API endpoints (all under /api/)
     path('api/accounts/', include('accounts.urls')),
     path('api/agencies/', include('agencies.urls')),
     path('api/influencers/', include('influencers.urls')),

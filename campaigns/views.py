@@ -1,860 +1,624 @@
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from django.utils.translation import gettext as _
-from django.http import JsonResponse
-from django.core.paginator import Paginator
-from django.views.decorators.http import require_http_methods
-from django.views.decorators.csrf import csrf_exempt
-from django.db.models import Q
+"""
+REST API Views for Campaigns App
+These views return JSON responses for the Next.js frontend
+"""
+
+from rest_framework import generics, status
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
+from django.shortcuts import get_object_or_404
+from django.db.models import Q, Sum
 from django.utils import timezone
 from decimal import Decimal
-import json
 
 from .models import Campaign, InfluencerCollaboration, CampaignContent, CampaignAnalytics
-from .forms import CampaignForm, InfluencerCollaborationForm, CampaignContentForm
+from .serializers import (
+    CampaignListSerializer,
+    CampaignDetailSerializer,
+    CampaignCreateUpdateSerializer,
+    CollaborationSerializer,
+    CollaborationDetailSerializer,
+    CollaborationCreateSerializer,
+    CampaignContentSerializer,
+    CampaignContentCreateSerializer,
+    CampaignAnalyticsSerializer,
+)
 from agencies.models import Agency
-from influencers.models import Influencer
 
 
-@login_required
-def campaign_list_view(request):
-    """Enhanced campaign list with performance metrics"""
-    try:
-        agency = Agency.objects.get(user=request.user)
-    except Agency.DoesNotExist:
-        messages.error(request, _('Agency profile not found.'))
-        return redirect('accounts:dashboard')
-    
-    campaigns = Campaign.objects.filter(agency=agency).order_by('-created_at')
-    
-    # Filter by status
-    status_filter = request.GET.get('status')
-    if status_filter:
-        campaigns = campaigns.filter(status=status_filter)
-    
-    # Search
-    search_query = request.GET.get('search')
-    if search_query:
-        campaigns = campaigns.filter(
-            Q(name__icontains=search_query) |
-            Q(brand_name__icontains=search_query)
+class CampaignPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+
+# ===========================================
+# CAMPAIGN VIEWS
+# ===========================================
+
+class CampaignListAPIView(generics.ListAPIView):
+    """
+    GET /api/campaigns/
+    List campaigns for the current user's agency
+    """
+    serializer_class = CampaignListSerializer
+    pagination_class = CampaignPagination
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        
+        # Get user's agency (as owner or team member)
+        agency = _get_user_agency(user)
+        if not agency:
+            return Campaign.objects.none()
+        
+        queryset = Campaign.objects.filter(agency=agency).order_by('-created_at')
+        
+        # Filter by status
+        status_filter = self.request.query_params.get('status', None)
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        
+        # Search
+        search = self.request.query_params.get('search', None)
+        if search:
+            queryset = queryset.filter(
+                Q(name__icontains=search) |
+                Q(brand_name__icontains=search) |
+                Q(description__icontains=search)
+            )
+        
+        # Filter by campaign type
+        campaign_type = self.request.query_params.get('type', None)
+        if campaign_type:
+            queryset = queryset.filter(campaign_type=campaign_type)
+        
+        return queryset
+
+
+class CampaignDetailAPIView(generics.RetrieveAPIView):
+    """
+    GET /api/campaigns/<id>/
+    Get campaign details with collaborations and analytics
+    """
+    serializer_class = CampaignDetailSerializer
+    permission_classes = [IsAuthenticated]
+    lookup_field = 'pk'
+
+    def get_queryset(self):
+        user = self.request.user
+        agency = _get_user_agency(user)
+        if not agency:
+            return Campaign.objects.none()
+        return Campaign.objects.filter(agency=agency)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_create_campaign(request):
+    """
+    POST /api/campaigns/create/
+    Create a new campaign
+    """
+    agency = _get_user_agency(request.user)
+    if not agency:
+        return Response(
+            {'error': 'No agency found for this user'},
+            status=status.HTTP_400_BAD_REQUEST
         )
     
-    # Add performance stats for each campaign
-    for campaign in campaigns:
-        campaign.total_collaborations = campaign.collaborations.count()
-        campaign.active_collaborations = campaign.collaborations.filter(
-            status__in=['accepted', 'in_progress', 'content_submitted', 'approved', 'published']
-        ).count()
+    serializer = CampaignCreateUpdateSerializer(data=request.data)
+    if serializer.is_valid():
+        campaign = serializer.save(
+            agency=agency,
+            created_by=request.user
+        )
         
-        # Get analytics summary
-        try:
-            analytics = campaign.analytics
-            campaign.performance_score = calculate_performance_score(campaign)
-            campaign.total_engagement = analytics.total_likes + analytics.total_comments + analytics.total_shares
-        except CampaignAnalytics.DoesNotExist:
-            campaign.performance_score = 0
-            campaign.total_engagement = 0
-    
-    # Pagination
-    paginator = Paginator(campaigns, 12)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    
-    context = {
-        'page_obj': page_obj,
-        'status_choices': Campaign.STATUS_CHOICES,
-        'current_status': status_filter,
-        'search_query': search_query,
-    }
-    
-    return render(request, 'campaigns/list.html', context)
+        # Create analytics record
+        CampaignAnalytics.objects.create(campaign=campaign)
+        
+        return Response(
+            CampaignDetailSerializer(campaign).data,
+            status=status.HTTP_201_CREATED
+        )
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@login_required
-def campaign_create_view(request):
-    """Create a new campaign with auto-created analytics"""
-    try:
-        agency = Agency.objects.get(user=request.user)
-    except Agency.DoesNotExist:
-        messages.error(request, _('Agency profile not found.'))
-        return redirect('accounts:dashboard')
-    
-    if request.method == 'POST':
-        form = CampaignForm(request.POST, request.FILES)
-        if form.is_valid():
-            campaign = form.save(commit=False)
-            campaign.agency = agency
-            campaign.created_by = request.user
-            campaign.save()
-            
-            # Create analytics record
-            CampaignAnalytics.objects.create(campaign=campaign)
-            
-            messages.success(request, _('Campaign created successfully!'))
-            return redirect('campaigns:campaign_detail', pk=campaign.pk)
-    else:
-        form = CampaignForm()
-    
-    return render(request, 'campaigns/create.html', {'form': form})
-
-
-@login_required
-def campaign_detail_view(request, pk):
-    """Enhanced campaign detail with comprehensive metrics"""
+@api_view(['PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def api_update_campaign(request, pk):
+    """
+    PUT/PATCH /api/campaigns/<id>/update/
+    Update campaign details
+    """
     campaign = get_object_or_404(Campaign, pk=pk)
     
-    # Check permissions
-    if request.user != campaign.agency.user and not request.user.agency_memberships.filter(agency=campaign.agency, is_active=True).exists():
-        messages.error(request, _('You do not have permission to view this campaign.'))
-        return redirect('campaigns:campaign_list')
+    # Check permission
+    if not _has_campaign_access(request.user, campaign):
+        return Response(
+            {'error': 'Permission denied'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    serializer = CampaignCreateUpdateSerializer(
+        campaign,
+        data=request.data,
+        partial=request.method == 'PATCH'
+    )
+    if serializer.is_valid():
+        serializer.save()
+        return Response(CampaignDetailSerializer(campaign).data)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def api_delete_campaign(request, pk):
+    """
+    DELETE /api/campaigns/<id>/delete/
+    Delete a campaign
+    """
+    campaign = get_object_or_404(Campaign, pk=pk)
+    
+    # Only agency owner can delete
+    if campaign.agency.owner != request.user:
+        return Response(
+            {'error': 'Only agency owner can delete campaigns'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    campaign.delete()
+    return Response({'message': 'Campaign deleted successfully'})
+
+
+# ===========================================
+# COLLABORATION VIEWS
+# ===========================================
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def api_collaborations(request, pk):
+    """
+    GET /api/campaigns/<id>/collaborations/
+    List collaborations for a campaign
+    """
+    campaign = get_object_or_404(Campaign, pk=pk)
+    
+    if not _has_campaign_access(request.user, campaign):
+        return Response(
+            {'error': 'Permission denied'},
+            status=status.HTTP_403_FORBIDDEN
+        )
     
     collaborations = campaign.collaborations.all().select_related('influencer')
+    serializer = CollaborationSerializer(collaborations, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_invite_influencer(request, pk):
+    """
+    POST /api/campaigns/<id>/invite-influencer/
+    Invite an influencer to collaborate
+    """
+    campaign = get_object_or_404(Campaign, pk=pk)
+    
+    if not _has_campaign_access(request.user, campaign):
+        return Response(
+            {'error': 'Permission denied'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    serializer = CollaborationCreateSerializer(data=request.data)
+    if serializer.is_valid():
+        # Check if influencer already invited
+        influencer_id = serializer.validated_data['influencer_id']
+        if campaign.collaborations.filter(influencer_id=influencer_id).exists():
+            return Response(
+                {'error': 'Influencer already invited to this campaign'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        from influencers.models import Influencer
+        influencer = get_object_or_404(Influencer, pk=influencer_id)
+        
+        collaboration = InfluencerCollaboration.objects.create(
+            campaign=campaign,
+            influencer=influencer,
+            content_type=serializer.validated_data['content_type'],
+            deliverables_count=serializer.validated_data.get('deliverables_count', 1),
+            agreed_rate=serializer.validated_data['agreed_rate'],
+            deadline=serializer.validated_data['deadline'],
+            specific_requirements=serializer.validated_data.get('specific_requirements', ''),
+        )
+        
+        return Response(
+            CollaborationDetailSerializer(collaboration).data,
+            status=status.HTTP_201_CREATED
+        )
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def api_collaboration_detail(request, pk):
+    """
+    GET /api/campaigns/collaboration/<id>/
+    Get collaboration details
+    """
+    collaboration = get_object_or_404(InfluencerCollaboration, pk=pk)
+    
+    if not _has_campaign_access(request.user, collaboration.campaign):
+        return Response(
+            {'error': 'Permission denied'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    serializer = CollaborationDetailSerializer(collaboration)
+    return Response(serializer.data)
+
+
+@api_view(['PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def api_update_collaboration(request, campaign_pk, pk):
+    """
+    PUT/PATCH /api/campaigns/<campaign_id>/collaborations/<id>/
+    Update collaboration details
+    """
+    collaboration = get_object_or_404(InfluencerCollaboration, pk=pk, campaign_id=campaign_pk)
+    
+    if not _has_campaign_access(request.user, collaboration.campaign):
+        return Response(
+            {'error': 'Permission denied'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    # Update allowed fields
+    allowed_fields = ['agreed_rate', 'deadline', 'specific_requirements', 'notes', 'status']
+    for field in allowed_fields:
+        if field in request.data:
+            setattr(collaboration, field, request.data[field])
+    
+    # Track status changes
+    if 'status' in request.data and request.data['status'] != collaboration.status:
+        if request.data['status'] in ['accepted', 'declined']:
+            collaboration.responded_at = timezone.now()
+    
+    collaboration.save()
+    return Response(CollaborationDetailSerializer(collaboration).data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_update_collaboration_status(request, pk):
+    """
+    POST /api/campaigns/collaboration/<id>/update-status/
+    Update collaboration status
+    """
+    collaboration = get_object_or_404(InfluencerCollaboration, pk=pk)
+    
+    if not _has_campaign_access(request.user, collaboration.campaign):
+        return Response(
+            {'error': 'Permission denied'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    new_status = request.data.get('status')
+    if not new_status:
+        return Response(
+            {'error': 'Status is required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    valid_statuses = [choice[0] for choice in InfluencerCollaboration.STATUS_CHOICES]
+    if new_status not in valid_statuses:
+        return Response(
+            {'error': f'Invalid status. Must be one of: {valid_statuses}'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    collaboration.status = new_status
+    if new_status in ['accepted', 'declined']:
+        collaboration.responded_at = timezone.now()
+    collaboration.save()
+    
+    return Response(CollaborationDetailSerializer(collaboration).data)
+
+
+# ===========================================
+# CONTENT VIEWS
+# ===========================================
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def api_content_list(request, pk):
+    """
+    GET /api/campaigns/collaboration/<id>/content/
+    List content for a collaboration
+    """
+    collaboration = get_object_or_404(InfluencerCollaboration, pk=pk)
+    
+    if not _has_campaign_access(request.user, collaboration.campaign):
+        return Response(
+            {'error': 'Permission denied'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    content = collaboration.content.all().order_by('-created_at')
+    serializer = CampaignContentSerializer(content, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_create_content(request, pk):
+    """
+    POST /api/campaigns/collaboration/<id>/content/
+    Create new content submission
+    """
+    collaboration = get_object_or_404(InfluencerCollaboration, pk=pk)
+    
+    if not _has_campaign_access(request.user, collaboration.campaign):
+        return Response(
+            {'error': 'Permission denied'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    serializer = CampaignContentCreateSerializer(data=request.data)
+    if serializer.is_valid():
+        content = serializer.save(collaboration=collaboration)
+        return Response(
+            CampaignContentSerializer(content).data,
+            status=status.HTTP_201_CREATED
+        )
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def api_update_content(request, campaign_pk, pk):
+    """
+    PUT/PATCH /api/campaigns/<campaign_id>/content/<id>/
+    Update content details
+    """
+    content = get_object_or_404(CampaignContent, pk=pk)
+    
+    if content.collaboration.campaign_id != campaign_pk:
+        return Response(
+            {'error': 'Content does not belong to this campaign'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    if not _has_campaign_access(request.user, content.collaboration.campaign):
+        return Response(
+            {'error': 'Permission denied'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    # Update allowed fields
+    allowed_fields = ['title', 'caption', 'post_url', 'status', 'feedback']
+    for field in allowed_fields:
+        if field in request.data:
+            setattr(content, field, request.data[field])
+    
+    # Track status changes
+    if 'status' in request.data:
+        if request.data['status'] == 'submitted' and not content.submitted_at:
+            content.submitted_at = timezone.now()
+        elif request.data['status'] == 'published' and not content.published_at:
+            content.published_at = timezone.now()
+    
+    content.save()
+    
+    # Update campaign analytics
+    _update_campaign_analytics(content.collaboration.campaign)
+    
+    return Response(CampaignContentSerializer(content).data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_review_content(request, pk):
+    """
+    POST /api/campaigns/content/<id>/review/
+    Review content submission (approve/reject/request revision)
+    """
+    content = get_object_or_404(CampaignContent, pk=pk)
+    
+    if not _has_campaign_access(request.user, content.collaboration.campaign):
+        return Response(
+            {'error': 'Permission denied'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    new_status = request.data.get('status')
+    feedback = request.data.get('feedback', '')
+    
+    if new_status not in ['approved', 'rejected', 'revision_requested']:
+        return Response(
+            {'error': 'Status must be approved, rejected, or revision_requested'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    content.status = new_status
+    content.feedback = feedback
+    content.save()
+    
+    return Response(CampaignContentSerializer(content).data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_update_content_metrics(request, pk):
+    """
+    POST /api/campaigns/content/<id>/update-metrics/
+    Update content performance metrics
+    """
+    content = get_object_or_404(CampaignContent, pk=pk)
+    
+    if not _has_campaign_access(request.user, content.collaboration.campaign):
+        return Response(
+            {'error': 'Permission denied'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    # Update metrics
+    if 'likes_count' in request.data:
+        content.likes_count = int(request.data['likes_count'])
+    if 'comments_count' in request.data:
+        content.comments_count = int(request.data['comments_count'])
+    if 'shares_count' in request.data:
+        content.shares_count = int(request.data['shares_count'])
+    if 'views_count' in request.data:
+        content.views_count = int(request.data['views_count'])
+    if 'post_url' in request.data:
+        content.post_url = request.data['post_url']
+    
+    content.save()
+    
+    # Update campaign analytics
+    _update_campaign_analytics(content.collaboration.campaign)
+    
+    return Response(CampaignContentSerializer(content).data)
+
+
+# ===========================================
+# ANALYTICS VIEWS
+# ===========================================
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def api_campaign_analytics(request, pk):
+    """
+    GET /api/campaigns/<id>/analytics/
+    Get campaign analytics
+    """
+    campaign = get_object_or_404(Campaign, pk=pk)
+    
+    if not _has_campaign_access(request.user, campaign):
+        return Response(
+            {'error': 'Permission denied'},
+            status=status.HTTP_403_FORBIDDEN
+        )
     
     # Get or create analytics
     analytics, created = CampaignAnalytics.objects.get_or_create(campaign=campaign)
     
-    # Update analytics with current data
-    update_campaign_analytics(campaign)
+    # Update with fresh data
+    _update_campaign_analytics(campaign)
+    analytics.refresh_from_db()
     
-    # Performance summary
-    performance_data = {
-        'total_spent': float(campaign.get_total_spent()),
-        'remaining_budget': float(campaign.get_remaining_budget()),
-        'budget_used_percentage': (float(campaign.get_total_spent()) / float(campaign.total_budget)) * 100 if campaign.total_budget > 0 else 0,
-        'avg_cost_per_collaboration': float(campaign.get_total_spent()) / max(collaborations.filter(status='completed').count(), 1),
-        'performance_score': calculate_performance_score(campaign),
-    }
+    serializer = CampaignAnalyticsSerializer(analytics)
+    data = serializer.data
     
-    # ROI calculations
-    total_engagement = analytics.total_likes + analytics.total_comments + analytics.total_shares
-    if total_engagement > 0:
-        cost_per_engagement = float(campaign.get_total_spent()) / total_engagement
-        estimated_value = total_engagement * 0.50  # $0.50 per engagement
-        roi_percentage = ((estimated_value - float(campaign.get_total_spent())) / float(campaign.get_total_spent())) * 100 if campaign.get_total_spent() > 0 else 0
-        
-        performance_data.update({
-            'cost_per_engagement': round(cost_per_engagement, 2),
-            'estimated_roi': round(roi_percentage, 1),
-            'estimated_value': round(estimated_value, 2),
-        })
+    # Add performance score
+    data['performanceScore'] = _calculate_performance_score(campaign)
     
-    context = {
-        'campaign': campaign,
-        'collaborations': collaborations,
-        'analytics': analytics,
-        'performance_data': performance_data,
-    }
-    
-    return render(request, 'campaigns/detail.html', context)
+    return Response(data)
 
 
-@login_required
-def campaign_edit_view(request, pk):
-    """Edit campaign"""
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_refresh_analytics(request, pk):
+    """
+    POST /api/campaigns/<id>/analytics/refresh/
+    Force refresh campaign analytics
+    """
     campaign = get_object_or_404(Campaign, pk=pk)
     
-    # Check permissions
-    if request.user != campaign.agency.user:
-        messages.error(request, _('Only the agency owner can edit campaigns.'))
-        return redirect('campaigns:campaign_detail', pk=pk)
-    
-    if request.method == 'POST':
-        form = CampaignForm(request.POST, request.FILES, instance=campaign)
-        if form.is_valid():
-            form.save()
-            messages.success(request, _('Campaign updated successfully!'))
-            return redirect('campaigns:campaign_detail', pk=pk)
-    else:
-        form = CampaignForm(instance=campaign)
-    
-    return render(request, 'campaigns/edit.html', {'form': form, 'campaign': campaign})
-
-
-@login_required
-def campaign_delete_view(request, pk):
-    """Delete campaign"""
-    campaign = get_object_or_404(Campaign, pk=pk)
-    
-    # Check permissions
-    if request.user != campaign.agency.user:
-        messages.error(request, _('Only the agency owner can delete campaigns.'))
-        return redirect('campaigns:campaign_detail', pk=pk)
-    
-    if request.method == 'POST':
-        campaign.delete()
-        messages.success(request, _('Campaign deleted successfully!'))
-        return redirect('campaigns:campaign_list')
-    
-    return render(request, 'campaigns/delete_confirm.html', {'campaign': campaign})
-
-
-@login_required
-def collaboration_list_view(request, pk):
-    """List collaborations for a campaign with enhanced metrics"""
-    campaign = get_object_or_404(Campaign, pk=pk)
-    
-    # Check permissions
-    if request.user != campaign.agency.user and not request.user.agency_memberships.filter(agency=campaign.agency, is_active=True).exists():
-        messages.error(request, _('You do not have permission to view this campaign.'))
-        return redirect('campaigns:campaign_list')
-    
-    collaborations = campaign.collaborations.all().select_related('influencer')
-    
-    # Add performance metrics to each collaboration
-    for collaboration in collaborations:
-        content_items = collaboration.content.all()
-        collaboration.total_engagement = sum(
-            content.likes_count + content.comments_count + content.shares_count 
-            for content in content_items
+    if not _has_campaign_access(request.user, campaign):
+        return Response(
+            {'error': 'Permission denied'},
+            status=status.HTTP_403_FORBIDDEN
         )
-        collaboration.total_views = sum(content.views_count for content in content_items)
-        collaboration.content_count = content_items.count()
-        
-        # Calculate engagement rate
-        if collaboration.total_views > 0:
-            collaboration.engagement_rate = (collaboration.total_engagement / collaboration.total_views) * 100
-        else:
-            collaboration.engagement_rate = 0
     
-    context = {
-        'campaign': campaign,
-        'collaborations': collaborations,
-    }
+    analytics = _update_campaign_analytics(campaign)
     
-    return render(request, 'campaigns/collaborations.html', context)
-
-
-@login_required
-def invite_influencer_view(request, pk):
-    """Invite influencer to campaign"""
-    campaign = get_object_or_404(Campaign, pk=pk)
-    
-    # Check permissions
-    if request.user != campaign.agency.user:
-        messages.error(request, _('Only the agency owner can invite influencers.'))
-        return redirect('campaigns:campaign_detail', pk=pk)
-    
-    if request.method == 'POST':
-        form = InfluencerCollaborationForm(request.POST)
-        if form.is_valid():
-            collaboration = form.save(commit=False)
-            collaboration.campaign = campaign
-            collaboration.save()
-            messages.success(request, _('Influencer invited successfully!'))
-            return redirect('campaigns:collaboration_list', pk=pk)
-    else:
-        form = InfluencerCollaborationForm()
-    
-    # Get available influencers
-    influencers = Influencer.objects.filter(is_active=True)
-    
-    context = {
-        'form': form,
-        'campaign': campaign,
-        'influencers': influencers,
-    }
-    
-    return render(request, 'campaigns/invite_influencer.html', context)
-
-
-@login_required
-def collaboration_detail_view(request, pk):
-    """Enhanced collaboration detail with performance metrics"""
-    collaboration = get_object_or_404(InfluencerCollaboration, pk=pk)
-    
-    # Check permissions
-    campaign_agency = collaboration.campaign.agency
-    if (request.user != campaign_agency.user and 
-        not request.user.agency_memberships.filter(agency=campaign_agency, is_active=True).exists() and
-        request.user != collaboration.influencer.user):
-        messages.error(request, _('You do not have permission to view this collaboration.'))
-        return redirect('accounts:dashboard')
-    
-    content_items = collaboration.content.all().order_by('-created_at')
-    
-    # Calculate performance metrics
-    total_engagement = sum(
-        content.likes_count + content.comments_count + content.shares_count 
-        for content in content_items
-    )
-    total_views = sum(content.views_count for content in content_items)
-    engagement_rate = (total_engagement / total_views * 100) if total_views > 0 else 0
-    cost_per_engagement = float(collaboration.agreed_rate) / total_engagement if total_engagement > 0 else 0
-    
-    context = {
-        'collaboration': collaboration,
-        'content_items': content_items,
-        'total_engagement': total_engagement,
-        'total_views': total_views,
-        'engagement_rate': round(engagement_rate, 2),
-        'cost_per_engagement': round(cost_per_engagement, 2),
-    }
-    
-    return render(request, 'campaigns/collaboration_detail.html', context)
-
-
-@require_http_methods(["POST"])
-@login_required
-def update_collaboration_status(request, pk):
-    """Update collaboration status (AJAX)"""
-    collaboration = get_object_or_404(InfluencerCollaboration, pk=pk)
-    
-    try:
-        data = json.loads(request.body)
-        new_status = data.get('status')
-        
-        if new_status in dict(InfluencerCollaboration.STATUS_CHOICES):
-            collaboration.status = new_status
-            if new_status in ['accepted', 'declined']:
-                collaboration.responded_at = timezone.now()
-            collaboration.save()
-            
-            return JsonResponse({
-                'success': True,
-                'message': _('Status updated successfully'),
-                'new_status': collaboration.get_status_display()
-            })
-        else:
-            return JsonResponse({'success': False, 'message': _('Invalid status')})
-    
-    except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)})
-
-
-@login_required
-def content_list_view(request, pk):
-    """List content for collaboration"""
-    collaboration = get_object_or_404(InfluencerCollaboration, pk=pk)
-    content_items = collaboration.content.all().order_by('-created_at')
-    
-    context = {
-        'collaboration': collaboration,
-        'content_items': content_items,
-    }
-    
-    return render(request, 'campaigns/content_list.html', context)
-
-
-@login_required
-def content_review_view(request, pk):
-    """Review content submission"""
-    content = get_object_or_404(CampaignContent, pk=pk)
-    collaboration = content.collaboration
-    
-    # Check permissions
-    campaign_agency = collaboration.campaign.agency
-    if (request.user != campaign_agency.user and 
-        not request.user.agency_memberships.filter(agency=campaign_agency, is_active=True).exists()):
-        messages.error(request, _('You do not have permission to review this content.'))
-        return redirect('accounts:dashboard')
-    
-    if request.method == 'POST':
-        action = request.POST.get('action')
-        feedback = request.POST.get('feedback', '')
-        
-        if action == 'approve':
-            content.status = 'approved'
-            content.feedback = feedback
-            content.save()
-            messages.success(request, _('Content approved!'))
-        elif action == 'request_revision':
-            content.status = 'revision_requested'
-            content.feedback = feedback
-            content.save()
-            messages.info(request, _('Revision requested.'))
-        elif action == 'reject':
-            content.status = 'rejected'
-            content.feedback = feedback
-            content.save()
-            messages.warning(request, _('Content rejected.'))
-        
-        return redirect('campaigns:collaboration_detail', pk=collaboration.pk)
-    
-    context = {
-        'content': content,
-        'collaboration': collaboration,
-    }
-    
-    return render(request, 'campaigns/content_review.html', context)
-
-
-@login_required
-def update_content_metrics(request, pk):
-    """Manual update of content performance metrics"""
-    content = get_object_or_404(CampaignContent, pk=pk)
-    collaboration = content.collaboration
-    
-    # Check permissions
-    campaign_agency = collaboration.campaign.agency
-    if (request.user != campaign_agency.user and 
-        not request.user.agency_memberships.filter(agency=campaign_agency, is_active=True).exists()):
-        messages.error(request, _('You do not have permission to update metrics.'))
-        return redirect('accounts:dashboard')
-    
-    if request.method == 'POST':
-        try:
-            # Update metrics from form data
-            content.likes_count = int(request.POST.get('likes_count', 0))
-            content.comments_count = int(request.POST.get('comments_count', 0))
-            content.shares_count = int(request.POST.get('shares_count', 0))
-            content.views_count = int(request.POST.get('views_count', 0))
-            content.post_url = request.POST.get('post_url', '')
-            content.save()
-            
-            # Update campaign analytics
-            update_campaign_analytics(collaboration.campaign)
-            
-            messages.success(request, _('Performance metrics updated successfully!'))
-            
-            # AJAX response
-            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-                engagement_rate = ((content.likes_count + content.comments_count + content.shares_count) / max(content.views_count, 1)) * 100
-                return JsonResponse({
-                    'success': True,
-                    'message': _('Metrics updated successfully!'),
-                    'metrics': {
-                        'likes': content.likes_count,
-                        'comments': content.comments_count,
-                        'shares': content.shares_count,
-                        'views': content.views_count,
-                        'engagement_rate': round(engagement_rate, 2)
-                    }
-                })
-            
-        except ValueError:
-            messages.error(request, _('Please enter valid numbers for metrics.'))
-            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-                return JsonResponse({'success': False, 'message': _('Please enter valid numbers.')})
-    
-    return redirect('campaigns:collaboration_detail', pk=collaboration.pk)
-
-
-@login_required
-def campaign_analytics_view(request, pk):
-    """Comprehensive campaign analytics dashboard"""
-    campaign = get_object_or_404(Campaign, pk=pk)
-    
-    # Check permissions
-    if request.user != campaign.agency.user and not request.user.agency_memberships.filter(agency=campaign.agency, is_active=True).exists():
-        messages.error(request, _('You do not have permission to view this campaign.'))
-        return redirect('campaigns:campaign_list')
-    
-    # Update analytics
-    analytics = update_campaign_analytics(campaign)
-    
-    # Calculate influencer performance ranking
-    collaborations = campaign.collaborations.all()
-    influencer_performance = []
-    
-    for collaboration in collaborations:
-        content_items = collaboration.content.all()
-        total_engagement = sum(
-            content.likes_count + content.comments_count + content.shares_count 
-            for content in content_items
-        )
-        total_views = sum(content.views_count for content in content_items)
-        
-        influencer_performance.append({
-            'influencer': collaboration.influencer,
-            'collaboration': collaboration,
-            'total_engagement': total_engagement,
-            'total_views': total_views,
-            'engagement_rate': (total_engagement / max(total_views, 1)) * 100,
-            'cost_per_engagement': float(collaboration.agreed_rate) / max(total_engagement, 1),
-            'agreed_rate': collaboration.agreed_rate,
-            'status': collaboration.status,
-        })
-    
-    # Sort by engagement rate
-    influencer_performance.sort(key=lambda x: x['engagement_rate'], reverse=True)
-    
-    # ROI calculations
-    total_spent = float(campaign.get_total_spent())
-    total_engagement = analytics.total_likes + analytics.total_comments + analytics.total_shares
-    
-    roi_data = {
-        'total_spent': total_spent,
-        'total_engagement': total_engagement,
-        'cost_per_engagement': total_spent / max(total_engagement, 1),
-        'estimated_value': total_engagement * 0.50,
-        'roi_percentage': 0
-    }
-    
-    if total_spent > 0:
-        roi_data['roi_percentage'] = ((roi_data['estimated_value'] - total_spent) / total_spent) * 100
-    
-    context = {
-        'campaign': campaign,
-        'analytics': analytics,
-        'influencer_performance': influencer_performance[:10],  # Top 10
-        'roi_data': roi_data,
-        'performance_score': calculate_performance_score(campaign),
-        'total_collaborations': collaborations.count(),
-        'completed_collaborations': collaborations.filter(status='completed').count(),
-    }
-    
-    return render(request, 'campaigns/analytics.html', context)
-
-
-# API Endpoints
-
-@require_http_methods(["GET"])
-@login_required
-def api_campaign_performance(request, pk):
-    """API endpoint for real-time campaign performance data"""
-    campaign = get_object_or_404(Campaign, pk=pk)
-    
-    # Check permissions
-    if request.user != campaign.agency.user and not request.user.agency_memberships.filter(agency=campaign.agency, is_active=True).exists():
-        return JsonResponse({'error': 'Permission denied'}, status=403)
-    
-    # Get analytics
-    analytics = update_campaign_analytics(campaign)
-    collaborations = campaign.collaborations.all()
-    
-    performance_data = {
-        'campaign_id': campaign.id,
-        'campaign_name': campaign.name,
-        'status': campaign.status,
-        'total_budget': float(campaign.total_budget),
-        'total_spent': float(campaign.get_total_spent()),
-        'remaining_budget': float(campaign.get_remaining_budget()),
-        'budget_used_percentage': (float(campaign.get_total_spent()) / float(campaign.total_budget)) * 100 if campaign.total_budget > 0 else 0,
-        
-        # Analytics
-        'total_reach': analytics.total_reach,
-        'total_impressions': analytics.total_impressions,
-        'total_likes': analytics.total_likes,
-        'total_comments': analytics.total_comments,
-        'total_shares': analytics.total_shares,
-        'total_engagement': analytics.total_likes + analytics.total_comments + analytics.total_shares,
-        'avg_engagement_rate': float(analytics.avg_engagement_rate),
-        'cost_per_engagement': float(analytics.cost_per_engagement) if analytics.cost_per_engagement else 0,
-        'estimated_value': float(analytics.estimated_value),
-        'roi_percentage': float(analytics.roi_percentage),
-        
-        # Collaboration stats
-        'total_collaborations': collaborations.count(),
-        'active_collaborations': collaborations.filter(status__in=['accepted', 'in_progress', 'published']).count(),
-        'completed_collaborations': collaborations.filter(status='completed').count(),
-        'pending_collaborations': collaborations.filter(status='invited').count(),
-        
-        # Performance score
-        'performance_score': calculate_performance_score(campaign),
-        
-        # Last updated
-        'last_updated': analytics.last_calculated.isoformat() if analytics.last_calculated else None,
-    }
-    
-    return JsonResponse({
-        'success': True,
-        'data': performance_data
+    return Response({
+        'message': 'Analytics refreshed successfully',
+        'data': CampaignAnalyticsSerializer(analytics).data
     })
 
 
-@csrf_exempt
-@require_http_methods(["POST"])
-@login_required
-def api_update_content_metrics(request, pk):
-    """API endpoint for updating content metrics via AJAX"""
-    content = get_object_or_404(CampaignContent, pk=pk)
-    collaboration = content.collaboration
+# ===========================================
+# HELPER FUNCTIONS
+# ===========================================
+
+def _get_user_agency(user):
+    """Get agency for user (as owner or team member)"""
+    from agencies.models import Agency, TeamMember
     
-    # Check permissions
-    campaign_agency = collaboration.campaign.agency
-    if (request.user != campaign_agency.user and 
-        not request.user.agency_memberships.filter(agency=campaign_agency, is_active=True).exists()):
-        return JsonResponse({'error': 'Permission denied'}, status=403)
-    
+    # Check if user owns an agency
     try:
-        data = json.loads(request.body)
-        
-        # Validate and update metrics
-        likes = int(data.get('likes_count', 0))
-        comments = int(data.get('comments_count', 0))
-        shares = int(data.get('shares_count', 0))
-        views = int(data.get('views_count', 0))
-        post_url = data.get('post_url', '')
-        
-        # Basic validation
-        if any(metric < 0 for metric in [likes, comments, shares, views]):
-            return JsonResponse({
-                'success': False,
-                'error': 'Metrics cannot be negative'
-            }, status=400)
-        
-        # Update content
-        content.likes_count = likes
-        content.comments_count = comments
-        content.shares_count = shares
-        content.views_count = views
-        content.post_url = post_url
-        content.save()
-        
-        # Update campaign analytics
-        update_campaign_analytics(collaboration.campaign)
-        
-        # Calculate new metrics
-        total_engagement = likes + comments + shares
-        engagement_rate = (total_engagement / max(views, 1)) * 100
-        
-        return JsonResponse({
-            'success': True,
-            'message': 'Metrics updated successfully',
-            'data': {
-                'content_id': content.id,
-                'likes_count': likes,
-                'comments_count': comments,
-                'shares_count': shares,
-                'views_count': views,
-                'total_engagement': total_engagement,
-                'engagement_rate': round(engagement_rate, 2),
-                'post_url': post_url,
-                'updated_at': timezone.now().isoformat()
-            }
-        })
-        
-    except (ValueError, KeyError) as e:
-        return JsonResponse({
-            'success': False,
-            'error': f'Invalid data: {str(e)}'
-        }, status=400)
-    except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'error': f'Server error: {str(e)}'
-        }, status=500)
-
-
-@require_http_methods(["GET"])
-@login_required
-def api_campaign_analytics(request, pk):
-    """API endpoint for detailed campaign analytics"""
-    campaign = get_object_or_404(Campaign, pk=pk)
+        return Agency.objects.get(owner=user)
+    except Agency.DoesNotExist:
+        pass
     
-    # Check permissions
-    if request.user != campaign.agency.user and not request.user.agency_memberships.filter(agency=campaign.agency, is_active=True).exists():
-        return JsonResponse({'error': 'Permission denied'}, status=403)
-    
-    # Update analytics
-    analytics = update_campaign_analytics(campaign)
-    
-    # Get influencer performance data
-    collaborations = campaign.collaborations.all()
-    influencer_data = []
-    
-    for collaboration in collaborations:
-        content_items = collaboration.content.all()
-        total_engagement = sum(
-            content.likes_count + content.comments_count + content.shares_count 
-            for content in content_items
-        )
-        total_views = sum(content.views_count for content in content_items)
-        
-        influencer_data.append({
-            'influencer_id': collaboration.influencer.id,
-            'influencer_name': collaboration.influencer.full_name,
-            'username': collaboration.influencer.username,
-            'collaboration_id': collaboration.id,
-            'status': collaboration.status,
-            'agreed_rate': float(collaboration.agreed_rate),
-            'content_count': content_items.count(),
-            'total_engagement': total_engagement,
-            'total_views': total_views,
-            'engagement_rate': (total_engagement / max(total_views, 1)) * 100,
-            'cost_per_engagement': float(collaboration.agreed_rate) / max(total_engagement, 1),
-            'deadline': collaboration.deadline.isoformat() if collaboration.deadline else None,
-        })
-    
-    # Sort by engagement rate
-    influencer_data.sort(key=lambda x: x['engagement_rate'], reverse=True)
-    
-    # Content performance data
-    all_content = CampaignContent.objects.filter(collaboration__campaign=campaign)
-    content_data = []
-    
-    for content in all_content:
-        total_engagement = content.likes_count + content.comments_count + content.shares_count
-        engagement_rate = (total_engagement / max(content.views_count, 1)) * 100
-        
-        content_data.append({
-            'content_id': content.id,
-            'collaboration_id': content.collaboration.id,
-            'influencer_name': content.collaboration.influencer.full_name,
-            'post_url': content.post_url,
-            'status': content.status,
-            'likes_count': content.likes_count,
-            'comments_count': content.comments_count,
-            'shares_count': content.shares_count,
-            'views_count': content.views_count,
-            'total_engagement': total_engagement,
-            'engagement_rate': engagement_rate,
-            'created_at': content.created_at.isoformat() if content.created_at else None,
-            'published_at': content.published_at.isoformat() if content.published_at else None,
-        })
-    
-    # Sort by engagement
-    content_data.sort(key=lambda x: x['total_engagement'], reverse=True)
-    
-    return JsonResponse({
-        'success': True,
-        'data': {
-            'campaign': {
-                'id': campaign.id,
-                'name': campaign.name,
-                'status': campaign.status,
-                'campaign_type': campaign.campaign_type,
-                'total_budget': float(campaign.total_budget),
-                'start_date': campaign.start_date.isoformat() if campaign.start_date else None,
-                'end_date': campaign.end_date.isoformat() if campaign.end_date else None,
-            },
-            'analytics': {
-                'total_reach': analytics.total_reach,
-                'total_impressions': analytics.total_impressions,
-                'total_likes': analytics.total_likes,
-                'total_comments': analytics.total_comments,
-                'total_shares': analytics.total_shares,
-                'total_engagement': analytics.total_likes + analytics.total_comments + analytics.total_shares,
-                'avg_engagement_rate': float(analytics.avg_engagement_rate),
-                'cost_per_engagement': float(analytics.cost_per_engagement) if analytics.cost_per_engagement else 0,
-                'total_spent': float(analytics.total_spent),
-                'estimated_value': float(analytics.estimated_value),
-                'roi_percentage': float(analytics.roi_percentage),
-                'performance_score': calculate_performance_score(campaign),
-                'last_calculated': analytics.last_calculated.isoformat() if analytics.last_calculated else None,
-            },
-            'influencers': influencer_data,
-            'content': content_data[:20],  # Top 20 performing content
-        }
-    })
-
-
-@csrf_exempt
-@require_http_methods(["POST"])
-@login_required
-def api_bulk_update_metrics(request):
-    """API endpoint for bulk updating multiple content metrics"""
+    # Check if user is a team member
     try:
-        data = json.loads(request.body)
-        updates = data.get('updates', [])
-        
-        updated_content = []
-        errors = []
-        
-        for update in updates:
-            try:
-                content_id = update.get('content_id')
-                content = get_object_or_404(CampaignContent, pk=content_id)
-                
-                # Check permissions
-                campaign_agency = content.collaboration.campaign.agency
-                if (request.user != campaign_agency.user and 
-                    not request.user.agency_memberships.filter(agency=campaign_agency, is_active=True).exists()):
-                    errors.append(f'Permission denied for content {content_id}')
-                    continue
-                
-                # Update metrics
-                content.likes_count = int(update.get('likes_count', content.likes_count))
-                content.comments_count = int(update.get('comments_count', content.comments_count))
-                content.shares_count = int(update.get('shares_count', content.shares_count))
-                content.views_count = int(update.get('views_count', content.views_count))
-                
-                if 'post_url' in update:
-                    content.post_url = update['post_url']
-                
-                content.save()
-                updated_content.append(content_id)
-                
-                # Update campaign analytics
-                update_campaign_analytics(content.collaboration.campaign)
-                
-            except Exception as e:
-                errors.append(f'Error updating content {content_id}: {str(e)}')
-        
-        return JsonResponse({
-            'success': len(errors) == 0,
-            'updated_count': len(updated_content),
-            'updated_content_ids': updated_content,
-            'errors': errors
-        })
-        
-    except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'error': f'Bulk update failed: {str(e)}'
-        }, status=500)
-
-
-@require_http_methods(["POST"])
-@login_required 
-def api_refresh_campaign_analytics(request, pk):
-    """API endpoint to manually refresh campaign analytics"""
-    campaign = get_object_or_404(Campaign, pk=pk)
+        membership = TeamMember.objects.get(user=user, is_active=True)
+        return membership.agency
+    except TeamMember.DoesNotExist:
+        pass
     
-    # Check permissions
-    if request.user != campaign.agency.user and not request.user.agency_memberships.filter(agency=campaign.agency, is_active=True).exists():
-        return JsonResponse({'error': 'Permission denied'}, status=403)
+    return None
+
+
+def _has_campaign_access(user, campaign):
+    """Check if user has access to campaign"""
+    from agencies.models import TeamMember
     
-    try:
-        # Force update analytics
-        analytics = update_campaign_analytics(campaign)
-        
-        return JsonResponse({
-            'success': True,
-            'message': 'Analytics refreshed successfully',
-            'data': {
-                'total_engagement': analytics.total_likes + analytics.total_comments + analytics.total_shares,
-                'total_reach': analytics.total_reach,
-                'avg_engagement_rate': float(analytics.avg_engagement_rate),
-                'roi_percentage': float(analytics.roi_percentage),
-                'performance_score': calculate_performance_score(campaign),
-                'last_updated': analytics.last_calculated.isoformat()
-            }
-        })
-        
-    except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'error': f'Failed to refresh analytics: {str(e)}'
-        }, status=500)
+    # Agency owner
+    if campaign.agency.owner == user:
+        return True
+    
+    # Team member
+    return TeamMember.objects.filter(
+        agency=campaign.agency,
+        user=user,
+        is_active=True
+    ).exists()
 
 
-# Utility Functions
-
-def update_campaign_analytics(campaign):
+def _update_campaign_analytics(campaign):
     """Update campaign analytics from all content"""
     analytics, created = CampaignAnalytics.objects.get_or_create(campaign=campaign)
     
-    # Aggregate from all content in campaign
+    # Aggregate from all content
     all_content = CampaignContent.objects.filter(collaboration__campaign=campaign)
     
-    analytics.total_likes = sum(content.likes_count for content in all_content)
-    analytics.total_comments = sum(content.comments_count for content in all_content)
-    analytics.total_shares = sum(content.shares_count for content in all_content)
-    analytics.total_reach = sum(content.views_count for content in all_content)
+    analytics.total_likes = sum(c.likes_count for c in all_content)
+    analytics.total_comments = sum(c.comments_count for c in all_content)
+    analytics.total_shares = sum(c.shares_count for c in all_content)
+    analytics.total_reach = sum(c.views_count for c in all_content)
+    analytics.total_impressions = analytics.total_reach  # Simplified
     
     # Calculate engagement rate
     total_engagement = analytics.total_likes + analytics.total_comments + analytics.total_shares
     if analytics.total_reach > 0:
         analytics.avg_engagement_rate = (total_engagement / analytics.total_reach) * 100
     
-    # Update financial metrics
+    # Financial metrics
     analytics.total_spent = campaign.get_total_spent()
     if total_engagement > 0:
         analytics.cost_per_engagement = analytics.total_spent / total_engagement
     
-    # Estimated ROI
+    # ROI calculation
     analytics.estimated_value = total_engagement * Decimal('0.50')
     if analytics.total_spent > 0:
-        analytics.roi_percentage = float(((analytics.estimated_value - analytics.total_spent) / analytics.total_spent) * 100)
+        analytics.roi_percentage = float(
+            ((analytics.estimated_value - analytics.total_spent) / analytics.total_spent) * 100
+        )
     
     analytics.save()
     return analytics
 
 
-def calculate_performance_score(campaign):
+def _calculate_performance_score(campaign):
     """Calculate overall performance score (0-100)"""
     try:
         analytics = campaign.analytics
@@ -897,4 +661,3 @@ def calculate_performance_score(campaign):
         return min(score, 100)
     except:
         return 0
-

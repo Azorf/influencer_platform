@@ -14,6 +14,9 @@ DEBUG = config('DEBUG', default=True, cast=bool)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=lambda v: [s.strip() for s in v.split(',')])
 
+# Frontend URL for redirects
+FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
+
 # Application definition
 DJANGO_APPS = [
     'django.contrib.admin',
@@ -32,6 +35,7 @@ THIRD_PARTY_APPS = [
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
     'rest_framework',
+    'rest_framework.authtoken',
     'corsheaders',
     'django_extensions',
 ]
@@ -148,23 +152,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 SITE_ID = 1
 
 # Authentication
-AUTH_USER_MODEL = 'accounts.CustomUser'  # Adjust if you have a custom user model
+AUTH_USER_MODEL = 'accounts.CustomUser'
 
-# Login/Logout URLs
-LOGIN_URL = '/accounts/login/'
-LOGIN_REDIRECT_URL = '/accounts/dashboard/'
-LOGOUT_REDIRECT_URL = '/'
+# ===========================================
+# ALLAUTH CONFIGURATION
+# ===========================================
 
-# Email Configuration
-EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
-EMAIL_HOST = config('EMAIL_HOST', default='')
-EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
-EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
-EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
-DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@example.com')
-
-# Django Allauth Configuration
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
     'allauth.account.auth_backends.AuthenticationBackend',
@@ -172,9 +165,19 @@ AUTHENTICATION_BACKENDS = [
 
 # Allauth Settings
 ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+ACCOUNT_EMAIL_VERIFICATION = 'none'  # Set to 'mandatory' in production
 ACCOUNT_AUTHENTICATION_METHOD = 'email'
 ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_LOGOUT_ON_GET = True
+
+# Custom adapters to handle frontend redirects
+ACCOUNT_ADAPTER = 'accounts.adapters.CustomAccountAdapter'
+SOCIALACCOUNT_ADAPTER = 'accounts.adapters.CustomSocialAccountAdapter'
+
+# Login/Logout redirects (adapters override these for frontend)
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'
+ACCOUNT_LOGOUT_REDIRECT_URL = '/'
 
 # Google OAuth Configuration
 SOCIALACCOUNT_PROVIDERS = {
@@ -190,17 +193,29 @@ SOCIALACCOUNT_PROVIDERS = {
         ],
         'AUTH_PARAMS': {
             'access_type': 'online',
-        }
+        },
+        'VERIFIED_EMAIL': True,
     }
 }
 
-# Google OAuth Credentials (use environment variables)
-GOOGLE_OAUTH_CLIENT_ID = os.getenv('GOOGLE_OAUTH_CLIENT_ID')
-GOOGLE_OAUTH_CLIENT_SECRET = os.getenv('GOOGLE_OAUTH_CLIENT_SECRET')
+# ===========================================
+# EMAIL CONFIGURATION
+# ===========================================
 
+EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
+EMAIL_HOST = config('EMAIL_HOST', default='')
+EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@example.com')
+
+# ===========================================
+# STRIPE CONFIGURATION
+# ===========================================
 
 import stripe
-# Stripe Configuration
+
 STRIPE_PUBLISHABLE_KEY = config('STRIPE_PUBLISHABLE_KEY', default='')
 STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY', default='')
 STRIPE_WEBHOOK_SECRET = config('STRIPE_WEBHOOK_SECRET', default='')
@@ -211,7 +226,10 @@ stripe.api_key = STRIPE_SECRET_KEY
 # Currency
 DEFAULT_CURRENCY = 'mad'  # Moroccan Dirham
 
-# REST Framework Configuration
+# ===========================================
+# REST FRAMEWORK CONFIGURATION
+# ===========================================
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
@@ -227,14 +245,22 @@ REST_FRAMEWORK = {
     ],
 }
 
-# CORS Configuration
+# ===========================================
+# CORS CONFIGURATION
+# ===========================================
+
 CORS_ALLOWED_ORIGINS = config(
     'CORS_ALLOWED_ORIGINS', 
     default='http://localhost:3000,http://127.0.0.1:3000',
     cast=lambda v: [s.strip() for s in v.split(',')]
 )
 
-# Security Settings (Production)
+CORS_ALLOW_CREDENTIALS = True
+
+# ===========================================
+# SECURITY SETTINGS (Production)
+# ===========================================
+
 if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
@@ -243,12 +269,14 @@ if not DEBUG:
     SECURE_REDIRECT_EXEMPT = []
     SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=True, cast=bool)
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    USE_TZ = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_HSTS_PRELOAD = True
 
-# Logging Configuration
+# ===========================================
+# LOGGING CONFIGURATION
+# ===========================================
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -284,7 +312,10 @@ LOGGING = {
     },
 }
 
-# Cache Configuration
+# ===========================================
+# CACHE CONFIGURATION
+# ===========================================
+
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.redis.RedisCache',
@@ -299,7 +330,10 @@ CACHES = {
 SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
 SESSION_CACHE_ALIAS = 'default'
 
-# Celery Configuration
+# ===========================================
+# CELERY CONFIGURATION
+# ===========================================
+
 CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')
 CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
 
@@ -312,17 +346,17 @@ CELERY_TIMEZONE = 'UTC'
 # Celery Beat Configuration (for scheduled tasks)
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
-# Optional: Task routing
+# Task routing
 CELERY_TASK_ROUTES = {
     'scraper.tasks.*': {'queue': 'scraper'},
     'influencers.tasks.*': {'queue': 'influencers'},
     'campaigns.tasks.*': {'queue': 'campaigns'},
 }
 
-# Optional: Task time limits (in seconds)
+# Task time limits (in seconds)
 CELERY_TASK_TIME_LIMIT = 3600  # 1 hour
 CELERY_TASK_SOFT_TIME_LIMIT = 3000  # 50 minutes
 
-# Optional: Worker configuration
+# Worker configuration
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000
