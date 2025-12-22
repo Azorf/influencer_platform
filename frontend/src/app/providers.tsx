@@ -1,36 +1,13 @@
 'use client';
 
-import { useState } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { AuthProvider } from '@/lib/contexts/AuthContext';
-import { AgencyProvider } from '@/lib/contexts/AgencyContext';
-import { Toaster } from 'sonner';
+import { useEffect } from 'react';
+import { authService } from '@/lib/api';
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            staleTime: 60 * 1000, // 1 minute
-            gcTime: 5 * 60 * 1000, // 5 minutes (formerly cacheTime)
-            retry: 1,
-            refetchOnWindowFocus: false,
-          },
-        },
-      })
-  );
+  // Initialize auth token from localStorage on app load
+  useEffect(() => {
+    authService.initializeFromStorage();
+  }, []);
 
-  return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <AgencyProvider>
-          {children}
-          <Toaster position="top-right" richColors />
-        </AgencyProvider>
-      </AuthProvider>
-      <ReactQueryDevtools initialIsOpen={false} />
-    </QueryClientProvider>
-  );
+  return <>{children}</>;
 }

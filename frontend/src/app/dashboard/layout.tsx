@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { getAccessToken, clearTokens } from '@/lib/api/axios';
+import { authService } from '@/lib/api';
 
 const navigation = [
   {
@@ -62,16 +62,16 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const router = useRouter();
 
-  // // Check authentication
+  // Check authentication (uncomment when ready)
   // useEffect(() => {
-  //   const token = getAccessToken();
+  //   const token = authService.getAccessToken();
   //   if (!token) {
   //     router.push('/login');
   //   }
   // }, [router]);
 
   const handleLogout = () => {
-    clearTokens();
+    authService.logout();
     router.push('/');
   };
 
