@@ -101,22 +101,38 @@ def api_current_agency(request):
     GET /api/agencies/me/
     Get the current user's agency
     """
+    # Check if user owns an agency (try both 'user' and 'owner' fields)
     try:
-        # Check if user owns an agency
+        agency = Agency.objects.get(user=request.user)
+        serializer = AgencyDetailSerializer(agency)
+        return Response(serializer.data)
+    except Agency.DoesNotExist:
+        pass
+    except Exception:
+        pass
+    
+    try:
         agency = Agency.objects.get(owner=request.user)
         serializer = AgencyDetailSerializer(agency)
         return Response(serializer.data)
     except Agency.DoesNotExist:
-        # Check if user is a team member
+        pass
+    except Exception:
+        pass
+    
+    # Check if user is a team member
+    if TeamMember:
         try:
             team_member = TeamMember.objects.get(user=request.user, is_active=True)
             serializer = AgencyDetailSerializer(team_member.agency)
             return Response(serializer.data)
-        except TeamMember.DoesNotExist:
-            return Response(
-                {'error': 'No agency found for this user'},
-                status=status.HTTP_404_NOT_FOUND
-            )
+        except Exception:
+            pass
+    
+    return Response(
+        {'error': 'No agency found for this user'},
+        status=status.HTTP_404_NOT_FOUND
+    )
 
 
 @api_view(['POST'])
@@ -126,8 +142,8 @@ def api_create_agency(request):
     POST /api/agencies/create/
     Create a new agency
     """
-    # Check if user already has an agency
-    if Agency.objects.filter(owner=request.user).exists():
+    # Check if user already has an agency (try both 'user' and 'owner' fields)
+    if Agency.objects.filter(user=request.user).exists() or Agency.objects.filter(owner=request.user).exists():
         return Response(
             {'error': 'You already have an agency'},
             status=status.HTTP_400_BAD_REQUEST
@@ -135,12 +151,27 @@ def api_create_agency(request):
     
     serializer = AgencyCreateUpdateSerializer(data=request.data)
     if serializer.is_valid():
-        agency = serializer.save(owner=request.user)
+        # Try to save with 'user' field first, then 'owner'
+        try:
+            agency = serializer.save(user=request.user)
+        except TypeError:
+            agency = serializer.save(owner=request.user)
         return Response(
             AgencyDetailSerializer(agency).data,
             status=status.HTTP_201_CREATED
         )
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# Alias for setup endpoint (same as create)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_setup_agency(request):
+    """
+    POST /api/agencies/setup/
+    Setup/create agency during onboarding
+    """
+    return api_create_agency(request)
 
 
 @api_view(['PUT', 'PATCH'])
@@ -152,15 +183,23 @@ def api_update_agency(request, pk):
     """
     agency = get_object_or_404(Agency, pk=pk)
     
-    # Check permission
-    if agency.owner != request.user:
+    # Check permission - try both 'user' and 'owner' fields
+    is_owner = False
+    if hasattr(agency, 'user') and agency.user == request.user:
+        is_owner = True
+    elif hasattr(agency, 'owner') and agency.owner == request.user:
+        is_owner = True
+    
+    if not is_owner:
         # Check if user is admin team member
-        is_admin = TeamMember.objects.filter(
-            agency=agency, 
-            user=request.user, 
-            role='admin',
-            is_active=True
-        ).exists()
+        is_admin = False
+        if TeamMember:
+            is_admin = TeamMember.objects.filter(
+                agency=agency, 
+                user=request.user, 
+                role='admin',
+                is_active=True
+            ).exists()
         if not is_admin:
             return Response(
                 {'error': 'Permission denied'},

@@ -2,7 +2,29 @@
 // API Client - Base Configuration
 // ===========================================
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+// Base URL for the backend server
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+// Remove trailing slash and /api suffix if present, then add /api
+function buildApiBaseUrl(url: string): string {
+  // Remove trailing slash
+  let cleanUrl = url.replace(/\/+$/, '');
+  // Remove /api suffix if present (we'll add it back)
+  cleanUrl = cleanUrl.replace(/\/api$/, '');
+  // Add /api
+  return `${cleanUrl}/api`;
+}
+
+// API base URL (always with /api prefix)
+const API_BASE_URL = buildApiBaseUrl(BACKEND_URL);
+
+// Log for debugging (remove in production)
+if (typeof window !== 'undefined') {
+  console.log('API Base URL:', API_BASE_URL);
+}
+
+// Export backend URL for OAuth and other non-API routes
+export const getBackendUrl = () => BACKEND_URL.replace(/\/api\/?$/, '').replace(/\/+$/, '');
 
 interface RequestOptions extends RequestInit {
   params?: Record<string, string | number | boolean | undefined>;

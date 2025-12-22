@@ -126,8 +126,8 @@ class InfluencerTagSerializer(serializers.ModelSerializer):
 class InfluencerListSerializer(serializers.ModelSerializer):
     """Lightweight serializer for list views"""
     
-    fullName = serializers.CharField(source='full_name')
-    primaryCategory = serializers.CharField(source='primary_category', default='')
+    fullName = serializers.SerializerMethodField()
+    primaryCategory = serializers.CharField(source='primary_category', default='', allow_null=True)
     secondaryCategories = serializers.SerializerMethodField()
     isVerified = serializers.BooleanField(source='is_verified', default=False)
     isActive = serializers.BooleanField(source='is_active', default=True)
@@ -147,10 +147,18 @@ class InfluencerListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'fullName', 'username', 'email', 'bio', 'avatar',
             'location', 'language', 'primaryCategory', 'secondaryCategories',
-            'country', 'city', 'isVerified', 'isActive',
+            'country', 'isVerified', 'isActive',
             'tier', 'totalFollowers', 'followerCount', 'engagementRate', 
             'avgViews', 'avgLikes', 'mediaCount', 'profilePictureUrl',
         ]
+    
+    def get_fullName(self, obj):
+        """Get full name, fallback to username if not set"""
+        if hasattr(obj, 'full_name') and obj.full_name:
+            return obj.full_name
+        if hasattr(obj, 'username') and obj.username:
+            return obj.username
+        return 'Unknown'
     
     def get_secondaryCategories(self, obj):
         if hasattr(obj, 'get_secondary_categories_list'):
@@ -246,7 +254,7 @@ class InfluencerDetailSerializer(serializers.ModelSerializer):
             'id', 'fullName', 'username', 'email', 'bio', 'avatar',
             'age', 'gender', 'location', 'language',
             'primaryCategory', 'secondaryCategories',
-            'phoneNumber', 'website', 'country', 'city',
+            'phoneNumber', 'website', 'country',
             'isVerified', 'isActive', 'createdAt',
             'socialAccounts', 'analytics', 'sponsoredPosts',
             'tier', 'totalFollowers', 'followerCount', 'engagementRate', 'profilePictureUrl',

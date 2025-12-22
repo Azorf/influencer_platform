@@ -550,19 +550,46 @@ def api_refresh_analytics(request, pk):
 
 def _get_user_agency(user):
     """Get agency for user (as owner or team member)"""
-    from agencies.models import Agency, TeamMember
+    from agencies.models import Agency
     
-    # Check if user owns an agency
+    # Try different possible TeamMember model names
+    TeamMember = None
+    try:
+        from agencies.models import TeamMember
+    except ImportError:
+        try:
+            from agencies.models import AgencyTeamMember as TeamMember
+        except ImportError:
+            pass
+    
+    # Check if user owns an agency - try 'user' field first (based on your model)
+    try:
+        return Agency.objects.get(user=user)
+    except (Agency.DoesNotExist, Exception):
+        pass
+    
+    # Also try 'owner' field as fallback
     try:
         return Agency.objects.get(owner=user)
-    except Agency.DoesNotExist:
+    except (Agency.DoesNotExist, Exception):
         pass
     
     # Check if user is a team member
+    if TeamMember:
+        try:
+            membership = TeamMember.objects.filter(user=user, is_active=True).first()
+            if membership:
+                return membership.agency
+        except Exception:
+            pass
+    
+    # Try via team_members related name
     try:
-        membership = TeamMember.objects.get(user=user, is_active=True)
-        return membership.agency
-    except TeamMember.DoesNotExist:
+        from agencies.models import Agency
+        agency = Agency.objects.filter(team_members__user=user, team_members__is_active=True).first()
+        if agency:
+            return agency
+    except Exception:
         pass
     
     return None
@@ -570,18 +597,37 @@ def _get_user_agency(user):
 
 def _has_campaign_access(user, campaign):
     """Check if user has access to campaign"""
-    from agencies.models import TeamMember
+    # Try different possible TeamMember model names
+    TeamMember = None
+    try:
+        from agencies.models import TeamMember
+    except ImportError:
+        try:
+            from agencies.models import AgencyTeamMember as TeamMember
+        except ImportError:
+            pass
     
-    # Agency owner
-    if campaign.agency.owner == user:
+    # Agency owner - try 'user' field first (based on your model)
+    if hasattr(campaign.agency, 'user') and campaign.agency.user == user:
+        return True
+    if hasattr(campaign.agency, 'owner') and campaign.agency.owner == user:
         return True
     
     # Team member
-    return TeamMember.objects.filter(
-        agency=campaign.agency,
-        user=user,
-        is_active=True
-    ).exists()
+    if TeamMember:
+        return TeamMember.objects.filter(
+            agency=campaign.agency,
+            user=user,
+            is_active=True
+        ).exists()
+    
+    # Try via team_members related name
+    try:
+        return campaign.agency.team_members.filter(user=user, is_active=True).exists()
+    except Exception:
+        pass
+    
+    return False
 
 
 def _update_campaign_analytics(campaign):

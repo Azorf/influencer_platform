@@ -1,12 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { authService } from '@/lib/api';
-import apiClient from '@/lib/api-client';
+import apiClient, { getBackendUrl } from '@/lib/api-client';
 
-export default function AuthCallbackPage() {
+function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
@@ -18,14 +17,10 @@ export default function AuthCallbackPage() {
 
   async function handleCallback() {
     try {
-      // Get the authorization code from URL params
-      const code = searchParams.get('code');
       const errorParam = searchParams.get('error');
+      const tokenParam = searchParams.get('token');
       
-      // Check if Django allauth redirected with a session cookie instead
-      // In this case, we need to check if we're already authenticated
-      const existingToken = searchParams.get('token');
-      
+      // Check for error from OAuth
       if (errorParam) {
         setStatus('error');
         setError(errorParam === 'access_denied' 
@@ -34,75 +29,111 @@ export default function AuthCallbackPage() {
         return;
       }
 
-      // If we have a token directly (from Django redirect)
-      if (existingToken) {
-        apiClient.setToken(existingToken);
+      // If we have a token directly in URL (custom implementation)
+      if (tokenParam) {
+        apiClient.setToken(tokenParam);
         if (typeof window !== 'undefined') {
-          localStorage.setItem('authToken', existingToken);
+          localStorage.setItem('authToken', tokenParam);
         }
-        setStatus('success');
-        setTimeout(() => router.push('/dashboard'), 1000);
+        // Check for agency before redirecting
+        await checkAgencyAndRedirect(tokenParam);
         return;
       }
 
-      // If we have a code, exchange it for a token
-      if (code) {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-        const response = await fetch(`${apiUrl}/accounts/api/google/callback/`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            code,
-            redirect_uri: `${window.location.origin}/auth/callback`,
-          }),
-        });
-
-        const data = await response.json();
-
-        if (response.ok && data.token) {
-          // Save the token
-          apiClient.setToken(data.token);
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('authToken', data.token);
-          }
-          
-          setStatus('success');
-          setTimeout(() => router.push('/dashboard'), 1000);
-        } else {
-          setStatus('error');
-          setError(data.error || 'Failed to authenticate');
-        }
-        return;
-      }
-
-      // If no code or token, check if we're already authenticated via session
-      // This handles the case where Django allauth completed OAuth and redirected back
-      try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-        const response = await fetch(`${apiUrl}/accounts/api/me/`, {
-          credentials: 'include', // Include session cookies
-        });
+      // Django allauth redirects here after successful OAuth with session cookie set
+      // We need to call an API endpoint to get a token or verify the session
+      const backendUrl = getBackendUrl();
+      
+      // Try to get current user info (this will work if session cookie is set)
+      const response = await fetch(`${backendUrl}/api/accounts/api/me/`, {
+        credentials: 'include', // Include session cookies
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
+      
+      if (response.ok) {
+        const userData = await response.json();
         
-        if (response.ok) {
-          // User is authenticated via session, but we need a token for the frontend
-          // For now, redirect to dashboard and rely on session
-          setStatus('success');
-          setTimeout(() => router.push('/dashboard'), 1000);
-          return;
+        // User is authenticated via session
+        // Store user data in localStorage for frontend use
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('user', JSON.stringify(userData));
         }
-      } catch {
-        // Session check failed, continue to error
+        
+        let authToken: string | null = null;
+        
+        // Try to get an auth token for API calls
+        try {
+          const tokenResponse = await fetch(`${backendUrl}/api/accounts/api/get-token/`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          if (tokenResponse.ok) {
+            const tokenData = await tokenResponse.json();
+            if (tokenData.token) {
+              apiClient.setToken(tokenData.token);
+              localStorage.setItem('authToken', tokenData.token);
+              authToken = tokenData.token;
+            }
+          }
+        } catch (tokenErr) {
+          // Token endpoint might not exist, continue with session auth
+          console.log('Token endpoint not available, using session auth');
+        }
+        
+        // Check for agency before redirecting
+        await checkAgencyAndRedirect(authToken);
+        return;
       }
 
+      // If session check failed, the user is not authenticated
       setStatus('error');
-      setError('No authentication code received');
+      setError('Authentication failed. Please try again.');
       
     } catch (err) {
       console.error('Auth callback error:', err);
       setStatus('error');
       setError('Authentication failed. Please try again.');
+    }
+  }
+
+  async function checkAgencyAndRedirect(token: string | null) {
+    const backendUrl = getBackendUrl();
+    
+    try {
+      const headers: Record<string, string> = {
+        'Accept': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Token ${token}`;
+      }
+      
+      const agencyResponse = await fetch(`${backendUrl}/api/agencies/me/`, {
+        credentials: 'include',
+        headers,
+      });
+      
+      setStatus('success');
+      
+      if (agencyResponse.ok) {
+        // User has agency - store it and go to dashboard
+        const agencyData = await agencyResponse.json();
+        localStorage.setItem('agency', JSON.stringify(agencyData));
+        setTimeout(() => router.push('/dashboard'), 1000);
+      } else {
+        // No agency - go to onboarding
+        setTimeout(() => router.push('/onboarding'), 1000);
+      }
+    } catch (err) {
+      console.log('Agency check failed, redirecting to onboarding:', err);
+      setStatus('success');
+      setTimeout(() => router.push('/onboarding'), 1000);
     }
   }
 
@@ -160,5 +191,17 @@ export default function AuthCallbackPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
+        <div className="animate-spin w-12 h-12 border-4 border-gray-200 border-t-gray-900 rounded-full"></div>
+      </div>
+    }>
+      <AuthCallbackContent />
+    </Suspense>
   );
 }

@@ -145,7 +145,7 @@ export const paymentService = {
   // =====================
   
   async getPaymentMethods(): Promise<PaymentMethod[]> {
-    return apiClient.get<PaymentMethod[]>('/payments/api/methods/');
+    return apiClient.get<PaymentMethod[]>('/payments/methods/');
   },
 
   async addPaymentMethod(data: {
@@ -155,7 +155,7 @@ export const paymentService = {
     iban?: string;
     isDefault?: boolean;
   }): Promise<PaymentMethod> {
-    return apiClient.post<PaymentMethod>('/payments/api/methods/', {
+    return apiClient.post<PaymentMethod>('/payments/methods/', {
       method_type: data.methodType,
       bank_name: data.bankName,
       account_holder_name: data.accountHolderName,
@@ -165,11 +165,11 @@ export const paymentService = {
   },
 
   async deletePaymentMethod(id: number): Promise<void> {
-    return apiClient.delete(`/payments/api/methods/${id}/`);
+    return apiClient.delete(`/payments/methods/${id}/`);
   },
 
   async setDefaultPaymentMethod(id: number): Promise<void> {
-    return apiClient.post(`/payments/api/methods/${id}/set-default/`);
+    return apiClient.post(`/payments/methods/${id}/set-default/`);
   },
 
   // =====================
@@ -181,7 +181,7 @@ export const paymentService = {
     type?: InvoiceType;
     search?: string;
   }): Promise<Invoice[]> {
-    return apiClient.get<Invoice[]>('/payments/api/invoices/', {
+    return apiClient.get<Invoice[]>('/payments/invoices/', {
       status: params?.status,
       type: params?.type,
       search: params?.search,
@@ -189,7 +189,7 @@ export const paymentService = {
   },
 
   async getInvoice(id: number): Promise<Invoice> {
-    return apiClient.get<Invoice>(`/payments/api/invoices/${id}/`);
+    return apiClient.get<Invoice>(`/payments/invoices/${id}/`);
   },
 
   async payInvoice(id: number, paymentMethodId?: number): Promise<{
@@ -197,7 +197,7 @@ export const paymentService = {
     payment_id: number;
     reference_number: string;
   }> {
-    return apiClient.post(`/payments/api/invoices/${id}/pay/`, {
+    return apiClient.post(`/payments/invoices/${id}/pay/`, {
       payment_method_id: paymentMethodId,
     });
   },
@@ -209,13 +209,13 @@ export const paymentService = {
   async getPayments(params?: {
     status?: PaymentTransactionStatus;
   }): Promise<PaymentTransaction[]> {
-    return apiClient.get<PaymentTransaction[]>('/payments/api/payments/', {
+    return apiClient.get<PaymentTransaction[]>('/payments/payments/', {
       status: params?.status,
     });
   },
 
   async getPayment(id: number): Promise<PaymentTransaction> {
-    return apiClient.get<PaymentTransaction>(`/payments/api/payments/${id}/`);
+    return apiClient.get<PaymentTransaction>(`/payments/payments/${id}/`);
   },
 
   // =====================
@@ -223,11 +223,11 @@ export const paymentService = {
   // =====================
   
   async getPayouts(): Promise<InfluencerPayout[]> {
-    return apiClient.get<InfluencerPayout[]>('/payments/api/payouts/');
+    return apiClient.get<InfluencerPayout[]>('/payments/payouts/');
   },
 
   async getPayout(id: number): Promise<InfluencerPayout> {
-    return apiClient.get<InfluencerPayout>(`/payments/api/payouts/${id}/`);
+    return apiClient.get<InfluencerPayout>(`/payments/payouts/${id}/`);
   },
 
   // =====================
@@ -235,11 +235,11 @@ export const paymentService = {
   // =====================
   
   async getPaymentStats(): Promise<PaymentStats> {
-    return apiClient.get<PaymentStats>('/payments/api/stats/');
+    return apiClient.get<PaymentStats>('/payments/stats/');
   },
 
   async getPayoutStats(): Promise<PayoutStats> {
-    return apiClient.get<PayoutStats>('/payments/api/payout-stats/');
+    return apiClient.get<PayoutStats>('/payments/payout-stats/');
   },
 };
 

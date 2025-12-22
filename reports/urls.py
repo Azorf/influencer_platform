@@ -8,8 +8,9 @@ from . import views
 app_name = 'reports'
 
 urlpatterns = [
-    # Reports
+    # Reports - root endpoint for list
     path('', views.report_list, name='report_list'),
+    path('reports/', views.report_list, name='report_list_alt'),  # Alternative path
     path('<int:pk>/', views.report_detail, name='report_detail'),
     path('<int:pk>/download/', views.report_download, name='report_download'),
     path('<int:pk>/status/', views.report_status, name='report_status'),

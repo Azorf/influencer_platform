@@ -12,6 +12,7 @@ urlpatterns = [
     path('', views.AgencyListAPIView.as_view(), name='api_agency_list'),
     path('me/', views.api_current_agency, name='api_current_agency'),
     path('create/', views.api_create_agency, name='api_create_agency'),
+    path('setup/', views.api_setup_agency, name='api_setup_agency'),
     path('<int:pk>/', views.AgencyDetailAPIView.as_view(), name='api_agency_detail'),
     path('<int:pk>/update/', views.api_update_agency, name='api_update_agency'),
     

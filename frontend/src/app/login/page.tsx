@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { authService } from '@/lib/api';
+import { getBackendUrl } from '@/lib/api-client';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -23,9 +24,10 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      // Option 1: Redirect to Django's allauth Google OAuth endpoint directly
-      // This is simpler and lets Django handle the entire OAuth flow
-      const googleAuthUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/accounts/google/login/?next=${encodeURIComponent(window.location.origin + '/auth/callback')}`;
+      // Redirect to Django's allauth Google OAuth endpoint
+      // Use backend URL (without /api) for OAuth routes
+      const backendUrl = getBackendUrl();
+      const googleAuthUrl = `${backendUrl}/accounts/google/login/?next=${encodeURIComponent(window.location.origin + '/auth/callback')}`;
       window.location.href = googleAuthUrl;
       
       // Option 2: Get Google auth URL from our API and redirect

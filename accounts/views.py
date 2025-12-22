@@ -345,6 +345,54 @@ def api_verify_token(request):
         }, status=status.HTTP_401_UNAUTHORIZED)
 
 
+@api_view(['POST', 'GET'])
+@permission_classes([AllowAny])
+def api_get_token(request):
+    """
+    Get or create an auth token for the currently authenticated user (via session).
+    This is used after Django allauth OAuth to get a token for the frontend.
+    """
+    # Check if user is authenticated via session
+    if not request.user.is_authenticated:
+        return Response(
+            {'error': 'Not authenticated'},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+    
+    # Get or create token for the user
+    token, created = Token.objects.get_or_create(user=request.user)
+    
+    return Response({
+        'token': token.key,
+        'user': UserSerializer(request.user).data,
+    })
+
+
+# CSRF-exempt version for OAuth callback
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+
+@csrf_exempt
+@api_view(['POST', 'GET'])
+@permission_classes([AllowAny])
+def api_get_token_no_csrf(request):
+    """
+    Get or create an auth token - CSRF exempt version for OAuth flow.
+    """
+    if not request.user.is_authenticated:
+        return Response(
+            {'error': 'Not authenticated'},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+    
+    token, created = Token.objects.get_or_create(user=request.user)
+    
+    return Response({
+        'token': token.key,
+        'user': UserSerializer(request.user).data,
+    })
+
+
 # ===========================================
 # TEMPLATE-BASED VIEWS (Original views)
 # ===========================================

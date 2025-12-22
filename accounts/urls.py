@@ -18,6 +18,7 @@ urlpatterns = [
     # Authentication
     path('api/logout/', views.api_logout, name='api_logout'),
     path('api/verify-token/', views.api_verify_token, name='api_verify_token'),
+    path('api/get-token/', views.api_get_token_no_csrf, name='api_get_token'),  # Use CSRF-exempt version
     
     # Google OAuth
     path('api/google/url/', views.api_google_auth_url, name='api_google_auth_url'),
